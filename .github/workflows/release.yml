@@ -3,6 +3,9 @@ name: Release
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Release
@@ -28,6 +31,14 @@ jobs:
 
       - name: Version
         run: bun run version
+
+      - name: Commit changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: version packages & update changelogs" || echo "Nothing to commit"
+          git push
 
       - name: Publish
         run: bun run publish
