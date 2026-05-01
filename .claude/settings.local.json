@@ -1,5 +1,12 @@
 {
   "permissions": {
-    "allow": ["Bash(bun test:*)"]
+    "allow": [
+      "Bash(bun test:*)",
+      "Bash(git -C /Users/djeg/Projects/foundations log --oneline --all)",
+      "Bash(git -C /Users/djeg/Projects/foundations show a0d86b0 --stat)",
+      "Bash(git -C /Users/djeg/Projects/foundations show a0d86b0:.changeset/)",
+      "Bash(git -C /Users/djeg/Projects/foundations show a0d86b0 -- '.changeset/*.md')",
+      "Bash(git:*)"
+    ]
   }
 }
