@@ -151,4 +151,18 @@ MIT
 
 ---
 
+**`packages/<name>/moon.yml`**
+
+```yaml
+tasks:
+  test:
+    command: 'bun test'
+  lint:
+    command: 'biome check'
+  build:
+    command: 'bun run dist'
+```
+
+---
+
 After creating the files, remind the user to run `bun install` from the monorepo root to register the new workspace package.
