@@ -1,0 +1,55 @@
+{
+  "name": "@herodot-app/idion",
+  "description": "Idion is a typescript library that gives your domain objects a proper identity — not just a shape, but a name they can be proud of",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "library",
+    "domain",
+    "objects",
+    "identity"
+  ],
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/idion.cjs",
+  "module": "./dist/idion.js",
+  "types": "./dist/idion.d.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/idion.d.ts",
+      "import": "./dist/idion.js",
+      "require": "./dist/idion.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dist": "tsup",
+    "build": "tsup"
+  },
+  "tsup": {
+    "entry": [
+      "src/idion.ts"
+    ],
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true,
+    "outDir": "dist",
+    "minify": false
+  }
+}

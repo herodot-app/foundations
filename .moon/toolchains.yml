@@ -1,0 +1,6 @@
+bun: {}
+
+javascript:
+  packageManager: 'bun'
+
+typescript: {}

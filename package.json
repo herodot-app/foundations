@@ -1,10 +1,25 @@
 {
   "name": "foundations",
   "private": true,
+  "description": "A collection of foundational packages for the Herodot app.",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@biomejs/biome": "^2.4.13",
+    "@moonrepo/cli": "^2.2.3",
+    "@types/bun": "latest",
+    "tsup": "^8.5.1"
   },
   "peerDependencies": {
     "typescript": "^5"
-  }
+  },
+  "scripts": {
+    "lint": "bun run lint:all",
+    "lint:all": "moon run :lint",
+    "lint:fix": "moon run :lint -- --fix",
+    "test:all": "moon run :test",
+    "test": "bun run test:all",
+    "build:all": "moon run :build"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }
