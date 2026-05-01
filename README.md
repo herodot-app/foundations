@@ -1,7 +1,7 @@
 # foundations
 
 <p align="center">
-  <img src="./assets/foundations.webp" alt="foundations" />
+  <img src="https://github.com/herodot-app/foundations/blob/main/assets/foundations.webp?raw=true" alt="foundations" />
 </p>
 
 Foundations is a monorepo containing all open source projects for the Herodot App, making
