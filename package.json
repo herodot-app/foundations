@@ -1,6 +1,7 @@
 {
   "name": "foundations",
   "private": true,
+  "description": "A collection of foundational packages for the Herodot app.",
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
     "@moonrepo/cli": "^2.2.3",
