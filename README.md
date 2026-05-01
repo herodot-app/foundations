@@ -17,3 +17,9 @@ typescript a better place to work with.
 
 Idion gives your domain objects a proper identity at both the type and runtime level, so a `UserId` and a `PostId` stop pretending they're the same thing just because they both have a `value: string`. No wrapper classes. No ceremony. Just objects that finally know who they are.
 
+### [@herodot-app/rheon](./packages/rheon)
+
+> You cannot step into the same river twice. A rheon is how you represent that river in TypeScript.
+
+Rheon is a typed, mutable reactive container for values that change over time. It makes the intent explicit in the type system — so mutable state stops sneaking around like a `let` variable with ambition.
+

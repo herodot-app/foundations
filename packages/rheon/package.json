@@ -1,0 +1,55 @@
+{
+  "name": "@herodot-app/rheon",
+  "description": "a representation of a mutable value to ensure safety in your codebase",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "library"
+  ],
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/rheon.cjs",
+  "module": "./dist/rheon.js",
+  "types": "./dist/rheon.d.ts",
+  "dependencies": {
+    "@herodot-app/idion": "^0.1.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/rheon.d.ts",
+      "import": "./dist/rheon.js",
+      "require": "./dist/rheon.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dist": "tsup"
+  },
+  "tsup": {
+    "entry": [
+      "src/rheon.ts"
+    ],
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true,
+    "outDir": "dist",
+    "minify": false
+  }
+}

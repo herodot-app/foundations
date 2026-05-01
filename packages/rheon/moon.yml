@@ -1,0 +1,11 @@
+tasks:
+  test:
+    command: 'bun test'
+    deps:
+      - 'idion:build'
+  lint:
+    command: 'biome check'
+  build:
+    command: 'bun run dist'
+    deps:
+      - 'idion:build'
