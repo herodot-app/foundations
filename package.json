@@ -2,9 +2,13 @@
   "name": "foundations",
   "private": true,
   "devDependencies": {
+    "@biomejs/biome": "^2.4.13",
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
-  }
+  },
+  "worspaces": [
+    "packages/*"
+  ]
 }
