@@ -19,7 +19,7 @@
     "test": "bun run test:all",
     "build:all": "moon run :build"
   },
-  "worspaces": [
+  "workspaces": [
     "packages/*"
   ]
 }
