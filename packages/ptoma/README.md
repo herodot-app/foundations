@@ -1,5 +1,9 @@
 # ptoma
 
+<p align="center">
+  <img src="https://github.com/herodot-app/foundations/blob/main/assets/ptoma.webp?raw=true" alt="idion" />
+</p>
+
 > From Ancient Greek **πτῶμα** (*ptôma*) — "a fall", and by extension, "a fallen thing".
 > The Greeks used it for anything that had collapsed beyond recovery. We use it for errors, which is basically the same thing.
 
