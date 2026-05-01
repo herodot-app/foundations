@@ -23,7 +23,7 @@ jobs:
         run: bun build:all
 
       - name: Publish
-        run: bun changeset publish
+        run: bun run publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

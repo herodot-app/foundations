@@ -17,7 +17,8 @@
     "lint:fix": "moon run :lint -- --fix",
     "test:all": "moon run :test",
     "test": "bun run test:all",
-    "build:all": "moon run :build"
+    "build:all": "moon run :build",
+    "publish": "bunx changeset publish"
   },
   "workspaces": [
     "packages/*"
