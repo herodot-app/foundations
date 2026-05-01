@@ -4,6 +4,7 @@
   "description": "A collection of foundational packages for the Herodot app.",
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
+    "@changesets/cli": "^2.31.0",
     "@moonrepo/cli": "^2.2.3",
     "@types/bun": "latest",
     "tsup": "^8.5.1"
