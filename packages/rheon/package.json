@@ -35,7 +35,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup"
+    "build": "tsup",
+    "dist": "tsup"
   },
   "tsup": {
     "entry": [
