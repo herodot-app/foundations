@@ -1,17 +1,45 @@
 {
   "name": "@herodot-app/idion",
+  "version": "0.1.0",
   "type": "module",
-  "private": true,
+  "main": "./dist/idion.cjs",
+  "module": "./dist/idion.js",
+  "types": "./dist/idion.d.ts",
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/idion.d.ts",
+      "import": "./dist/idion.js",
+      "require": "./dist/idion.cjs"
     }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dist": "tsup"
+  },
+  "tsup": {
+    "entry": [
+      "src/idion.ts"
+    ],
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true,
+    "outDir": "dist",
+    "minify": false
   }
 }
