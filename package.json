@@ -20,7 +20,8 @@
     "test": "bun run test:all",
     "build:all": "moon run :build",
     "publish": "bunx changeset publish",
-    "version": "bunx changeset version"
+    "version": "bunx changeset version",
+    "changeset": "bunx changeset"
   },
   "workspaces": [
     "packages/*"
