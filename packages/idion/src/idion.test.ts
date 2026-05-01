@@ -6,7 +6,7 @@ describe('Idion.create', () => {
     const branded = Idion.create({ id: 'User', value: { name: 'Alice' } })
 
     expect(branded.name).toBe('Alice')
-    expect(branded[Idion.identifier]).toBe('User')
+    expect(branded[Idion.identifier]).toBe(true)
   })
 
   test('brands a plain object with a symbol id', () => {
@@ -14,7 +14,8 @@ describe('Idion.create', () => {
     const branded = Idion.create({ id: sym, value: { total: 42 } })
 
     expect(branded.total).toBe(42)
-    expect(branded[Idion.identifier]).toBe(sym)
+    expect(branded[Idion.identifier]).toBe(true)
+    expect(branded[sym]).toBe(true)
   })
 
   test('preserves all original properties', () => {
@@ -24,6 +25,25 @@ describe('Idion.create', () => {
     expect(branded.a).toBe(1)
     expect(branded.b).toBe('two')
     expect(branded.c).toBe(true)
+  })
+
+  test('can merge idions between each other', () => {
+    const base = Idion.create({ id: 'Base', value: { x: 0 } })
+    const merged = Idion.create({
+      id: 'Merged',
+      value: Object.assign({ y: 0 }, base),
+    })
+
+    expect(merged.x).toBe(0)
+    expect(merged.y).toBe(0)
+    expect(merged[Idion.identifier]).toBe(true)
+    expect(merged.Base).toBe(true)
+    expect(merged.Merged).toBe(true)
+
+    expect(Idion.is(base, 'Base')).toBe(true)
+    expect(Idion.is(merged, 'Base')).toBe(true)
+    expect(Idion.is(base, 'Merged')).toBe(false)
+    expect(Idion.is(merged, 'Merged')).toBe(true)
   })
 })
 

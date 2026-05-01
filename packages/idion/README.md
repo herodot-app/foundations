@@ -128,6 +128,29 @@ const token = Idion.create({ id: SessionTokenBrand, value: { raw: 's3cr3t' } })
 // Nobody outside this module can forge a SessionToken without the symbol.
 ```
 
+### Inherit multiple brands
+
+An object can hold more than one brand. This is useful when a value naturally belongs to several identities at once — think of a `PremiumUser` that is also, unambiguously, a `User`.
+
+To achieve this, spread or `Object.assign` an existing `Idion` into the value of a new one. The resulting object carries every brand from its ancestors, plus the new one. It has layers. It contains multitudes.
+
+```ts
+const user = Idion.create({ id: 'User', value: { id: 'abc-123', name: 'Alice' } })
+//    ^? Idion<'User', { id: string; name: string }>
+
+const premiumUser = Idion.create({
+  id: 'PremiumUser',
+  value: Object.assign({ plan: 'gold' }, user),
+})
+//    ^? Idion<'PremiumUser', { plan: string } & Idion<'User', { id: string; name: string }>>
+
+Idion.is(premiumUser, 'User')        // true — still very much a User
+Idion.is(premiumUser, 'PremiumUser') // true — and proud of it
+Idion.is(user, 'PremiumUser')        // false — not everyone gets the upgrade
+```
+
+The inheritance is structural: all brand keys from the source object are copied verbatim. There is no magic lineage tracking — just plain objects doing what plain objects do best.
+
 ---
 
 ## API reference

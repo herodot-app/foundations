@@ -24,7 +24,9 @@
  * @typeParam T - The base object shape that carries the actual data.
  */
 export type Idion<I extends Idion.Brand, T extends {}> = {
-  [Idion.identifier]: I
+  readonly [Idion.identifier]: true
+} & {
+  readonly [key in I]: true
 } & T
 
 /**
@@ -114,9 +116,13 @@ export namespace Idion {
     value,
     id,
   }: CreateInput<I, T>): Idion<I, T> {
-    return Object.assign(value, {
-      [Idion.identifier]: id,
-    })
+    return Object.assign(
+      {
+        [Idion.identifier]: true,
+        [id]: true,
+      } as const,
+      value,
+    ) as Idion<I, T>
   }
 
   /**
@@ -154,10 +160,10 @@ export namespace Idion {
   ): value is Idion<I, T> {
     const inferedValue = value as Idion<I, T>
 
-    if (inferedValue[Idion.identifier] === undefined) return false
+    if (inferedValue[Idion.identifier] !== true) return false
 
     if (id !== undefined) {
-      return inferedValue[Idion.identifier] === id
+      return inferedValue[id] === true
     }
 
     return true
