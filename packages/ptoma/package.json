@@ -1,0 +1,55 @@
+{
+  "name": "@herodot-app/ptoma",
+  "description": "a standard way of representing domain specific error or failure in typescript",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "library",
+    "errors",
+    "failures",
+    "domain specific"
+  ],
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/ptoma.cjs",
+  "module": "./dist/ptoma.js",
+  "types": "./dist/ptoma.d.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/ptoma.d.ts",
+      "import": "./dist/ptoma.js",
+      "require": "./dist/ptoma.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dist": "tsup"
+  },
+  "tsup": {
+    "entry": [
+      "src/ptoma.ts"
+    ],
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true,
+    "outDir": "dist",
+    "minify": false
+  }
+}

@@ -23,3 +23,9 @@ Idion gives your domain objects a proper identity at both the type and runtime l
 
 Rheon is a typed, mutable reactive container for values that change over time. It makes the intent explicit in the type system — so mutable state stops sneaking around like a `let` variable with ambition.
 
+### [@herodot-app/ptoma](./packages/ptoma)
+
+> From Ancient Greek *πτῶμα* — "a fall". The Greeks used it for anything that had collapsed beyond recovery. We use it for errors.
+
+Ptoma is a standard way of representing domain-specific errors in TypeScript. It gives every failure a typed name and an optional structured payload — so when something falls in your program, you know exactly what fell, why, and what it was carrying. Without breaking the JavaScript error system.
+

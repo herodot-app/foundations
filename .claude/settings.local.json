@@ -8,7 +8,9 @@
       "Bash(git -C /Users/djeg/Projects/foundations show a0d86b0 -- '.changeset/*.md')",
       "Bash(git:*)",
       "Bash(gh pr:*)",
-      "Bash(bun changeset:*)"
+      "Bash(bun changeset:*)",
+      "Bash(bun run:*)",
+      "Bash(bun /tmp/debug-ptoma.ts)"
     ]
   }
 }
