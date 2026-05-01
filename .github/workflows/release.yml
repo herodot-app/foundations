@@ -26,6 +26,9 @@ jobs:
       - name: Build
         run: bun build:all
 
+      - name: Version
+        run: bun run version
+
       - name: Publish
         run: bun run publish
         env:
