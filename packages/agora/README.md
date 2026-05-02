@@ -325,6 +325,35 @@ Returns a `Plethos` census of the agora's current state: how many citizens are r
 |-----------|-------------|
 | `agora` | The agora to census. |
 
+### `Agora.is<T>(value)`
+
+Type-guard that returns `true` when `value` is an `Agora` instance — i.e. it carries the `Agora.identifier` brand. Delegates to `Idion.is` so the check works safely across module boundaries without relying on `instanceof`.
+
+```ts
+if (Agora.is(maybeAgora)) {
+  // maybeAgora is Agora<unknown> here
+}
+
+// Narrow to a specific payload type
+if (Agora.is<string>(maybeAgora)) {
+  Agora.kerysso(maybeAgora, 'hello')
+}
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| `value` | The value to inspect. |
+
+### `Agora.InferPayload<A>`
+
+Utility type that extracts the payload type `T` from a concrete `Agora<T>` type. Useful when writing generic code that works with arbitrary agora instances.
+
+```ts
+const loginAgora = Agora.create<User>()
+type Payload = Agora.InferPayload<typeof loginAgora>
+//   ^? User
+```
+
 ### `Agora.identifier`
 
 The well-known symbol (`Symbol.for('@herodot-app/agora')`) used to brand every agora instance. Consistent across module boundaries — one square, one seal.

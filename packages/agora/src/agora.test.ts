@@ -351,6 +351,48 @@ describe('Agora', () => {
     })
   })
 
+  describe('is', () => {
+    test('returns true for an agora created with Agora.create', () => {
+      const agora = Agora.create()
+
+      expect(Agora.is(agora)).toBe(true)
+    })
+
+    test('returns true for a typed agora', () => {
+      const agora = Agora.create<string>()
+
+      expect(Agora.is<string>(agora)).toBe(true)
+    })
+
+    test('returns false for null', () => {
+      expect(Agora.is(null)).toBe(false)
+    })
+
+    test('returns false for undefined', () => {
+      expect(Agora.is(undefined)).toBe(false)
+    })
+
+    test('returns false for a plain object', () => {
+      expect(Agora.is({ citizens: new Set(), keryssos: new Set() })).toBe(false)
+    })
+
+    test('returns false for a primitive', () => {
+      expect(Agora.is(42)).toBe(false)
+      expect(Agora.is('agora')).toBe(false)
+    })
+
+    test('narrows the type in a conditional branch', () => {
+      const maybeAgora: unknown = Agora.create<number>()
+
+      if (Agora.is<number>(maybeAgora)) {
+        // TypeScript should accept this — the guard narrowed correctly
+        expect(maybeAgora.citizens).toBeDefined()
+      } else {
+        throw new Error('guard should have returned true')
+      }
+    })
+  })
+
   describe('dialyo', () => {
     test('removes all citizens', () => {
       const agora = Agora.create()

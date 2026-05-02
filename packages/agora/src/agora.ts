@@ -77,6 +77,25 @@ export namespace Agora {
   export type Apotasso = () => void
 
   /**
+   * Extracts the payload type `T` from a concrete {@link Agora} type.
+   *
+   * Useful when you have an `Agora<T>` and need its `T` — for instance, when
+   * writing generic utilities that operate on arbitrary agora instances.
+   *
+   * @typeParam A - An `Agora` type to extract the payload from.
+   *
+   * @example
+   * ```ts
+   * const loginAgora = Agora.create<User>()
+   * type Payload = Agora.InferPayload<typeof loginAgora>
+   * //   ^? User
+   * ```
+   */
+  // biome-ignore lint: we want any here since it can be any Agora instance
+  export type InferPayload<A extends Agora<any>> =
+    A extends Agora<infer T> ? T : never
+
+  /**
    * Creates a new, empty **Agora** — a blank public square with no citizens
    * and no pending announcements.
    *
@@ -368,5 +387,37 @@ export namespace Agora {
       citizens: agora.citizens.size,
       keryssos: agora.keryssos.size,
     }
+  }
+
+  /**
+   * Type-guard that returns `true` when `value` is an {@link Agora} instance
+   * — specifically, when it carries the `Agora.identifier` brand stamped by
+   * {@link Agora.create}.
+   *
+   * Delegates to `Idion.is` under the hood so the check is safe across module
+   * boundaries and does not rely on `instanceof`.
+   *
+   * @typeParam T - The expected payload type of the agora. Defaults to
+   *   `unknown` so the guard is usable when the payload type is not yet known.
+   * @param value - The value to inspect.
+   * @returns `true` if `value` is an `Agora<T>`, narrowing the type
+   *   accordingly; `false` otherwise.
+   *
+   * @example
+   * ```ts
+   * if (Agora.is(maybeAgora)) {
+   *   // maybeAgora is Agora<unknown> here
+   *   Agora.kerysso(maybeAgora)
+   * }
+   *
+   * // With a concrete payload type
+   * if (Agora.is<string>(maybeAgora)) {
+   *   Agora.kerysso(maybeAgora, 'hello')
+   * }
+   * ```
+   */
+  export function is<T = unknown>(value: unknown): value is Agora<T> {
+    // biome-ignore lint: This is needed to satisfy the Idion.is guard
+    return Idion.is(value as {}, identifier)
   }
 }
