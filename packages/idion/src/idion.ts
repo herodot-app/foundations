@@ -160,6 +160,8 @@ export namespace Idion {
   ): value is Idion<I, T> {
     const inferedValue = value as Idion<I, T>
 
+    if (null === value || undefined === value) return false
+
     if (inferedValue[Idion.identifier] !== true) return false
 
     if (id !== undefined) {
