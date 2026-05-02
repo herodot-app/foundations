@@ -1,0 +1,62 @@
+{
+  "name": "@herodot-app/zygon",
+  "description": "A typescript library representing any operation \"Zygon\" that can be both a left \"Dexion\" or a right \"Skaion\" making your codebase a really safe place to work with and allowing to deploy even in friday",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "library",
+    "either",
+    "result",
+    "monad",
+    "tagged-union",
+    "error-handling",
+    "functional-programming",
+    "type-safe"
+  ],
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/zygon.cjs",
+  "module": "./dist/zygon.js",
+  "types": "./dist/zygon.d.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/zygon.d.ts",
+      "import": "./dist/zygon.js",
+      "require": "./dist/zygon.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dist": "tsup"
+  },
+  "tsup": {
+    "entry": [
+      "src/zygon.ts"
+    ],
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true,
+    "outDir": "dist",
+    "minify": false
+  },
+  "dependencies": {
+    "@herodot-app/idion": "^0.1.1"
+  }
+}

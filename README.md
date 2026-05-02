@@ -29,3 +29,8 @@ Rheon is a typed, mutable reactive container for values that change over time. I
 
 Ptoma is a standard way of representing domain-specific errors in TypeScript. It gives every failure a typed name and an optional structured payload — so when something falls in your program, you know exactly what fell, why, and what it was carrying. Without breaking the JavaScript error system.
 
+### [@herodot-app/zygon](./packages/zygon)
+
+> From Ancient Greek *ζυγόν* — "yoke", the bar that joins two oxen so they pull as one. A `Zygon` yokes two possible worlds: the path where things went right, and the path where they very much did not.
+
+Zygon is a typed Result/Either type for TypeScript. It makes your codebase safe to work with by forcing both the success path and the failure path to be first-class, typed values in every function signature — so exceptions stop escaping silently, and deploying on Friday becomes merely a calendar choice rather than an act of courage.
