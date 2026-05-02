@@ -1,0 +1,60 @@
+{
+  "name": "@herodot-app/eidos",
+  "description": "a typescript library for defining Entities (Eidos) that will really shape your domain allowing to take the full control of your app and represent each piece of your code as your own using runtime validation",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "library"
+  ],
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/eidos.cjs",
+  "module": "./dist/eidos.js",
+  "types": "./dist/eidos.d.ts",
+  "devDependencies": {
+    "@types/bun": "latest",
+    "zod": "^4.4.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/eidos.d.ts",
+      "import": "./dist/eidos.js",
+      "require": "./dist/eidos.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dist": "tsup",
+    "lint": "biome check && tsc --noEmit"
+  },
+  "tsup": {
+    "entry": [
+      "src/eidos.ts"
+    ],
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true,
+    "outDir": "dist",
+    "minify": false
+  },
+  "dependencies": {
+    "@herodot-app/idion": "^0.1.3",
+    "@herodot-app/ptoma": "^0.2.1",
+    "@herodot-app/zygon": "^0.2.1",
+    "@standard-schema/spec": "^1.1.0"
+  }
+}
