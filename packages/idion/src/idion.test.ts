@@ -73,23 +73,29 @@ describe('Idion.is', () => {
   })
 
   test('returns false for null', () => {
+    // biome-ignore lint: it's ok here
     expect(Idion.is(null as any)).toBe(false)
   })
 
   test('returns false for undefined', () => {
+    // biome-ignore lint: it's ok here
     expect(Idion.is(undefined as any)).toBe(false)
   })
 
   test('returns false for null with id check', () => {
+    // biome-ignore lint: it's ok here
     expect(Idion.is(null as any, 'Point')).toBe(false)
   })
 
   test('returns false for undefined with id check', () => {
+    // biome-ignore lint: it's ok here
     expect(Idion.is(undefined as any, 'Point')).toBe(false)
   })
 
   test('returns false for boolean', () => {
+    // biome-ignore lint: it's ok here
     expect(Idion.is(true as any)).toBe(false)
+    // biome-ignore lint: it's ok here
     expect(Idion.is(false as any)).toBe(false)
   })
 
