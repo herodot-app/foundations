@@ -1,19 +1,16 @@
 {
-  "name": "@herodot-app/rheon",
-  "description": "a representation of a mutable value to ensure safety in your codebase",
+  "name": "@herodot-app/agora",
+  "description": "a typescript implementation of the famous greek \"Agora\" (PubSub) where citizens can listen (Akouo) and proclaim (Kerysso) making your codebase a reactive place where members communicates between them (or not ?)",
   "license": "MIT",
   "keywords": [
     "typescript",
     "library"
   ],
-  "version": "0.2.0",
+  "version": "0.1.0",
   "type": "module",
-  "main": "./dist/rheon.cjs",
-  "module": "./dist/rheon.js",
-  "types": "./dist/rheon.d.ts",
-  "dependencies": {
-    "@herodot-app/idion": "^0.1.1"
-  },
+  "main": "./dist/agora.cjs",
+  "module": "./dist/agora.js",
+  "types": "./dist/agora.d.ts",
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -26,9 +23,9 @@
   ],
   "exports": {
     ".": {
-      "types": "./dist/rheon.d.ts",
-      "import": "./dist/rheon.js",
-      "require": "./dist/rheon.cjs"
+      "types": "./dist/agora.d.ts",
+      "import": "./dist/agora.js",
+      "require": "./dist/agora.cjs"
     }
   },
   "publishConfig": {
@@ -41,7 +38,7 @@
   },
   "tsup": {
     "entry": [
-      "src/rheon.ts"
+      "src/agora.ts"
     ],
     "format": [
       "esm",
@@ -52,5 +49,9 @@
     "clean": true,
     "outDir": "dist",
     "minify": false
+  },
+  "dependencies": {
+    "@herodot-app/idion": "^0.1.2",
+    "@herodot-app/zygon": "^0.2.0"
   }
 }

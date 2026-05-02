@@ -3,11 +3,14 @@ tasks:
     command: 'bun test'
     deps:
       - 'idion:build'
+      - 'zygon:build'
   lint:
     command: 'bun run lint'
     deps:
       - 'idion:build'
+      - 'zygon:build'
   build:
     command: 'bun run dist'
     deps:
       - 'idion:build'
+      - 'zygon:build'

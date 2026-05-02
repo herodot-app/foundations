@@ -34,3 +34,9 @@ Ptoma is a standard way of representing domain-specific errors in TypeScript. It
 > From Ancient Greek *ζυγόν* — "yoke", the bar that joins two oxen so they pull as one. A `Zygon` yokes two possible worlds: the path where things went right, and the path where they very much did not.
 
 Zygon is a typed Result/Either type for TypeScript. It makes your codebase safe to work with by forcing both the success path and the failure path to be first-class, typed values in every function signature — so exceptions stop escaping silently, and deploying on Friday becomes merely a calendar choice rather than an act of courage.
+
+### [@herodot-app/agora](./packages/agora)
+
+> From Ancient Greek *ἀγορά* — "gathering place, public square". The beating civic heart of every Greek city-state, where citizens came to trade goods, exchange ideas, and occasionally heckle the wrong person.
+
+Agora is a typed pub/sub event bus. Modules announce things into it; other modules hear those things. Nobody needs to import anyone. The square does the work — with full TypeScript safety, resilient error collection, and a deferred delivery queue for the moments when your consumers arrive fashionably late.

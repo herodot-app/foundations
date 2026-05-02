@@ -40,7 +40,8 @@
   },
   "scripts": {
     "build": "tsup",
-    "dist": "tsup"
+    "dist": "tsup",
+    "lint": "biome check && tsc --noEmit"
   },
   "tsup": {
     "entry": [
