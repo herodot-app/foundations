@@ -40,3 +40,9 @@ Zygon is a typed Result/Either type for TypeScript. It makes your codebase safe 
 > From Ancient Greek *ἀγορά* — "gathering place, public square". The beating civic heart of every Greek city-state, where citizens came to trade goods, exchange ideas, and occasionally heckle the wrong person.
 
 Agora is a typed pub/sub event bus. Modules announce things into it; other modules hear those things. Nobody needs to import anyone. The square does the work — with full TypeScript safety, resilient error collection, and a deferred delivery queue for the moments when your consumers arrive fashionably late.
+
+### [@herodot-app/eidos](./packages/eidos)
+
+> From Ancient Greek *εἶδος* — "form", "shape", "essence". In Plato's philosophy, the Eidos is the ideal blueprint that real-world things are imperfect shadows of. Your runtime object is just a loose collection of bits hoping to be considered a `User`. The Eidos is the Form it must live up to.
+
+Eidos lets you name your data shapes, validate them at runtime against any Standard Schema-compatible library (Zod, Valibot, Arktype — take your pick), and handle failures as typed, structured values. Shape your own data, with consistency, using any tools you want.
