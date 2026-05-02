@@ -9,7 +9,7 @@
     "failures",
     "domain specific"
   ],
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "main": "./dist/ptoma.cjs",
   "module": "./dist/ptoma.js",

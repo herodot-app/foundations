@@ -6,7 +6,7 @@
     "typescript",
     "library"
   ],
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "main": "./dist/agora.cjs",
   "module": "./dist/agora.js",
@@ -51,7 +51,7 @@
     "minify": false
   },
   "dependencies": {
-    "@herodot-app/idion": "^0.1.2",
-    "@herodot-app/zygon": "^0.2.0"
+    "@herodot-app/idion": "^0.1.3",
+    "@herodot-app/zygon": "^0.2.1"
   }
 }

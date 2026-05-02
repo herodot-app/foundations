@@ -13,7 +13,7 @@
     "functional-programming",
     "type-safe"
   ],
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "main": "./dist/zygon.cjs",
   "module": "./dist/zygon.js",
@@ -58,6 +58,6 @@
     "minify": false
   },
   "dependencies": {
-    "@herodot-app/idion": "^0.1.1"
+    "@herodot-app/idion": "^0.1.3"
   }
 }

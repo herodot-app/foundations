@@ -6,13 +6,13 @@
     "typescript",
     "library"
   ],
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "main": "./dist/rheon.cjs",
   "module": "./dist/rheon.js",
   "types": "./dist/rheon.d.ts",
   "dependencies": {
-    "@herodot-app/idion": "^0.1.1"
+    "@herodot-app/idion": "^0.1.3"
   },
   "devDependencies": {
     "@types/bun": "latest"
