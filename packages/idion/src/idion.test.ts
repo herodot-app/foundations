@@ -72,6 +72,48 @@ describe('Idion.is', () => {
     expect(Idion.is(plain)).toBe(false)
   })
 
+  test('returns false for null', () => {
+    expect(Idion.is(null as any)).toBe(false)
+  })
+
+  test('returns false for undefined', () => {
+    expect(Idion.is(undefined as any)).toBe(false)
+  })
+
+  test('returns false for null with id check', () => {
+    expect(Idion.is(null as any, 'Point')).toBe(false)
+  })
+
+  test('returns false for undefined with id check', () => {
+    expect(Idion.is(undefined as any, 'Point')).toBe(false)
+  })
+
+  test('returns false for boolean', () => {
+    expect(Idion.is(true as any)).toBe(false)
+    expect(Idion.is(false as any)).toBe(false)
+  })
+
+  test('returns false for number', () => {
+    expect(Idion.is(45)).toBe(false)
+  })
+
+  test('returns false for string', () => {
+    expect(Idion.is('hello')).toBe(false)
+  })
+
+  test('returns false for NAN', () => {
+    expect(Idion.is(NaN)).toBe(false)
+  })
+
+  test('returns false for Symbol', () => {
+    expect(Idion.is(Symbol('test'))).toBe(false)
+  })
+
+  test('returns false for Infinite', () => {
+    expect(Idion.is(Infinity)).toBe(false)
+    expect(Idion.is(-Infinity)).toBe(false)
+  })
+
   test('works with symbol brands', () => {
     const sym = Symbol('Token')
     const branded = Idion.create({ id: sym, value: { raw: 'abc' } })
