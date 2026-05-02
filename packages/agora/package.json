@@ -1,0 +1,57 @@
+{
+  "name": "@herodot-app/agora",
+  "description": "a typescript implementation of the famous greek \"Agora\" (PubSub) where citizens can listen (Akouo) and proclaim (Kerysso) making your codebase a reactive place where members communicates between them (or not ?)",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "library"
+  ],
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/agora.cjs",
+  "module": "./dist/agora.js",
+  "types": "./dist/agora.d.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/agora.d.ts",
+      "import": "./dist/agora.js",
+      "require": "./dist/agora.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dist": "tsup",
+    "lint": "biome check && tsc --noEmit"
+  },
+  "tsup": {
+    "entry": [
+      "src/agora.ts"
+    ],
+    "format": [
+      "esm",
+      "cjs"
+    ],
+    "dts": true,
+    "sourcemap": true,
+    "clean": true,
+    "outDir": "dist",
+    "minify": false
+  },
+  "dependencies": {
+    "@herodot-app/idion": "^0.1.2",
+    "@herodot-app/zygon": "^0.2.0"
+  }
+}
