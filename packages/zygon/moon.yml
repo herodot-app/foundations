@@ -4,7 +4,9 @@ tasks:
     deps:
       - 'idion:build'
   lint:
-    command: 'biome check'
+    command: 'bun run lint'
+    deps:
+      - 'idion:build'
   build:
     command: 'bun run dist'
     deps:
