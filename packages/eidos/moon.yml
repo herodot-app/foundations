@@ -6,7 +6,7 @@ tasks:
       - 'zygon:build'
       - 'ptoma:build'
   lint:
-    command: 'biome run lint'
+    command: 'bun run lint'
     deps:
       - 'idion:build'
       - 'zygon:build'

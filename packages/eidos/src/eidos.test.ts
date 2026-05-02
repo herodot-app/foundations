@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
+import { Ptoma } from '@herodot-app/ptoma'
+import { Zygon } from '@herodot-app/zygon'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { z } from 'zod'
 import { Eidos } from './eidos'
-import { Zygon } from '@herodot-app/zygon'
-import { Ptoma } from '@herodot-app/ptoma'
 
 // Minimal StandardSchemaV1-compatible schema helpers
 function successSchema<T>(output: T): StandardSchemaV1<unknown, T> {
