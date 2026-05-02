@@ -2,6 +2,6 @@ tasks:
   test:
     command: 'bun test'
   lint:
-    command: 'biome check'
+    command: 'bun run lint'
   build:
     command: 'bun run dist'
