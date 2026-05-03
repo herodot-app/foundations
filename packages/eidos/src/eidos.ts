@@ -17,20 +17,20 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
  * - a **schema** — a {@link StandardSchemaV1}-compliant validator that
  *   knows the shape the data must conform to
  *
- * Bring data into existence with {@link Eidos.genesis}, which validates input
+ * Bring data into existence with {@link Eidos.create}, which validates input
  * against the schema and returns a {@link Zygon} — success on the left,
  * failure on the right. The Platonic Form judges; the Zygon carries the verdict.
  *
  * ```ts
  * import * as v from 'valibot'
  *
- * const UserEidos = Eidos.horismos({
+ * const UserEidos = Eidos.define({
  *   name: 'User',
  *   schema: v.object({ id: v.string(), age: v.number() }),
  * })
  *
- * const result = Eidos.genesis(UserEidos, { id: 'u1', age: 30 })
- * // result is Zygon<{ id: string; age: number }, Eidos.GenesisPtoma>
+ * const result = Eidos.create(UserEidos, { id: 'u1', age: 30 })
+ * // result is Zygon<{ id: string; age: number }, Eidos.CreatePtoma>
  * ```
  *
  * @typeParam N - The name literal that identifies this Eidos.
@@ -83,7 +83,7 @@ export namespace Eidos {
   export type Name = string | symbol
 
   /**
-   * The input shape expected by {@link horismos}.
+   * The input shape expected by {@link define}.
    *
    * @typeParam N - The name of the Eidos to create.
    * @typeParam I - The raw input type accepted by the schema.
@@ -110,32 +110,106 @@ export namespace Eidos {
   }
 
   /**
+   * Extracts the **validated output type** (`O`) from an {@link Eidos}.
+   *
+   * This is the type you receive on the left side of a successful {@link create}
+   * call — the shape the schema produces after validation (and any transforms).
+   * Purely compile-time; zero runtime cost.
+   *
+   * @typeParam E - An `Eidos` type to inspect.
+   *
+   * @example
+   * ```ts
+   * const UserEidos = Eidos.define({
+   *   name: 'User',
+   *   schema: v.object({ id: v.string(), age: v.number() }),
+   * })
+   *
+   * type User = Eidos.Infer<typeof UserEidos>
+   * //   ^? { id: string; age: number }
+   * ```
+   */
+  // biome-ignore lint: we especially want any here to allow all values
+  export type Infer<E extends Eidos<Name, any, any>> =
+    // biome-ignore lint: we especially want any here to allow all values
+    E extends Eidos<Name, any, any>
+      ? StandardSchemaV1.InferOutput<E['schema']>
+      : never
+
+  /**
+   * Extracts the **raw input type** (`I`) accepted by an {@link Eidos}'s schema.
+   *
+   * This is the type you pass into {@link create} — the unvalidated shape before
+   * the schema runs. `InferInput` and {@link Infer} return the same type for
+   * schemas without transforms; they diverge when a transform is involved.
+   *
+   * @typeParam E - An `Eidos` type to inspect.
+   *
+   * @example
+   * ```ts
+   * // With a transforming schema (input ≠ output):
+   * const TimestampEidos = Eidos.define({
+   *   name: 'Timestamp',
+   *   schema: z.string().datetime().transform((s) => new Date(s)),
+   * })
+   *
+   * type RawTimestamp    = Eidos.InferInput<typeof TimestampEidos>  // string
+   * type ParsedTimestamp = Eidos.Infer<typeof TimestampEidos>       // Date
+   * ```
+   */
+  // biome-ignore lint: we especially want any here to allow all values
+  export type InferInput<E extends Eidos<Name, any, any>> =
+    // biome-ignore lint: we especially want any here to allow all values
+    E extends Eidos<Name, any, any>
+      ? StandardSchemaV1.InferInput<E['schema']>
+      : never
+
+  /**
+   * Extracts the **name literal** (`N`) from an {@link Eidos}.
+   *
+   * Returns the exact string or symbol literal passed as `name` to
+   * {@link define}. Useful for building type-level registries or discriminating
+   * on Eidos identity at the type level without holding a runtime reference.
+   *
+   * @typeParam E - An `Eidos` type to inspect.
+   *
+   * @example
+   * ```ts
+   * const UserEidos = Eidos.define({ name: 'User', schema: userSchema })
+   *
+   * type UserName = Eidos.InferName<typeof UserEidos>
+   * //   ^? 'User'
+   * ```
+   */
+  // biome-ignore lint: we especially want any here to allow all values
+  export type InferName<E extends Eidos<Name, any, any>> =
+    // biome-ignore lint: we especially want any here to allow all values
+    E extends Eidos<infer N, any, any> ? N : never
+
+  /**
    * Creates an `Eidos` from a name and a schema — the act of defining a Form.
    *
-   * The function name comes from the Greek **ὁρισμός** (_horismos_) — meaning
-   * "definition" or "boundary". In Aristotelian logic, a _horismos_ is a
-   * rigorous definition that draws the line between what a thing is and what
-   * it is not. That is precisely what this function does: it draws the boundary
-   * of your data and gives it a name.
+   * Draws the boundary of your data and gives it a name: it defines the line
+   * between what a thing is and what it is not.
    *
    * @typeParam N - The name literal for this Eidos.
    * @typeParam I - The raw input type accepted by the schema.
    * @typeParam O - The validated output type produced by the schema.
    *
    * @param options - The name and schema that together define this Form.
-   * @returns A fully branded {@link Eidos} ready to be used with {@link genesis}.
+   * @returns A fully branded {@link Eidos} ready to be used with {@link create}.
    *
    * @example
    * ```ts
    * import * as v from 'valibot'
    *
-   * const EmailEidos = Eidos.horismos({
+   * const EmailEidos = Eidos.define({
    *   name: 'Email',
    *   schema: v.pipe(v.string(), v.email()),
    * })
    * ```
    */
-  export function horismos<N extends Name, I, O>(
+  export function define<N extends Name, I, O>(
     options: Options<N, I, O>,
   ): Eidos<N, I, O> {
     return Idion.create({
@@ -169,25 +243,25 @@ export namespace Eidos {
   }
 
   /**
-   * The string identifier that brands a {@link GenesisPtoma}.
+   * The string identifier that brands a {@link CreatePtoma}.
    *
    * A plain string rather than a symbol so it can survive serialisation — handy
    * when you need to describe a validation failure in an error log and the reader
    * cannot import this module to compare symbols.
    */
-  export const genesisPtomaIdentifier =
-    '@herodot-app/eidos/genesis-ptoma' as const
+  export const createPtomaIdentifier =
+    '@herodot-app/eidos/create-ptoma' as const
 
   /**
-   * The type of {@link genesisPtomaIdentifier}.
+   * The type of {@link createPtomaIdentifier}.
    */
-  export type GenesisPtomaIdentifier = typeof genesisPtomaIdentifier
+  export type CreatePtomaIdentifier = typeof createPtomaIdentifier
 
   /**
-   * The {@link Ptoma} (fallen value) produced when {@link genesis} rejects its input.
+   * The {@link Ptoma} (fallen value) produced when {@link create} rejects its input.
    *
    * When data fails to match the Eidos's Form, the schema returns issues.
-   * Those issues are wrapped into a `GenesisPtoma` and placed on the right
+   * Those issues are wrapped into a `CreatePtoma` and placed on the right
    * side of the {@link Zygon} — a named, typed record of everything that was
    * wrong with the input, rather than a cryptic `ValidationError: invalid_type`.
    *
@@ -196,7 +270,7 @@ export namespace Eidos {
    *
    * @example
    * ```ts
-   * const result = Eidos.genesis(UserEidos, { id: 123 }) // id should be a string
+   * const result = Eidos.create(UserEidos, { id: 123 }) // id should be a string
    *
    * if (Zygon.isRight(result)) {
    *   console.log(result.right.payload.issues)
@@ -204,24 +278,22 @@ export namespace Eidos {
    * }
    * ```
    */
-  export class GenesisPtoma extends Ptoma.create<
-    GenesisPtomaIdentifier,
+  export class CreatePtoma extends Ptoma.create<
+    CreatePtomaIdentifier,
     { issues: ReadonlyArray<StandardSchemaV1.Issue> }
-  >(genesisPtomaIdentifier) {}
+  >(createPtomaIdentifier) {}
 
   /**
    * Validates `input` against an `Eidos`'s schema, bringing a value into
    * typed existence — or recording its failure to do so.
    *
-   * The function name comes from the Greek **γένεσις** (_genesis_) — meaning
-   * "origin", "creation", or "coming into being". In the Platonic sense, this is
-   * the moment a raw, unverified value either rises to the level of its ideal
-   * Form, or falls short and is turned away at the door.
+   * This is the moment a raw, unverified value either rises to the level of its
+   * ideal Form, or falls short and is turned away at the door.
    *
    * Returns a {@link Zygon}:
    * - **{@link Zygon.Left | Left}** (left/success) — the validated output
    *   value `O`, ready to use.
-   * - **{@link Zygon.Right | Right}** (right/failure) — a {@link GenesisPtoma}
+   * - **{@link Zygon.Right | Right}** (right/failure) — a {@link CreatePtoma}
    *   carrying the list of schema issues that prevented the value from existing.
    *
    * @typeParam N - The Eidos name.
@@ -234,7 +306,7 @@ export namespace Eidos {
    *
    * @example
    * ```ts
-   * const result = Eidos.genesis(EmailEidos, 'hello@example.com')
+   * const result = Eidos.create(EmailEidos, 'hello@example.com')
    *
    * if (Zygon.isLeft(result)) {
    *   sendWelcomeEmail(result.left) // ✅ typed as string (validated email)
@@ -243,34 +315,34 @@ export namespace Eidos {
    * }
    * ```
    */
-  export function genesis<N extends Name, I = unknown, O = I>(
+  export function create<N extends Name, I = unknown, O = I>(
     eidos: Eidos<N, I, O>,
     input: unknown,
-  ): Zygon<O, GenesisPtoma> {
+  ): Zygon<O, CreatePtoma> {
     const payload = eidos.schema['~standard'].validate(
       input,
     ) as StandardSchemaV1.Result<O>
 
     if (payload.issues) {
       return Zygon.right(
-        new GenesisPtoma(genesisPtomaIdentifier, { issues: payload.issues }),
-      ) as Zygon<O, GenesisPtoma>
+        new CreatePtoma(createPtomaIdentifier, { issues: payload.issues }),
+      ) as Zygon<O, CreatePtoma>
     }
 
-    return Zygon.left(payload.value) as Zygon<O, GenesisPtoma>
+    return Zygon.left(payload.value) as Zygon<O, CreatePtoma>
   }
 
   /**
-   * Type guard — returns `true` when `value` is a {@link GenesisPtoma}.
+   * Type guard — returns `true` when `value` is a {@link CreatePtoma}.
    *
    * Use this inside a `Zygon.isRight` branch when you want to distinguish a
    * validation failure from any other error that might be lurking on the right
    * side of a {@link Zygon}. A fallen value should at least be identifiable.
    *
    * @param value - The value to inspect.
-   * @returns `true` if `value` is an instance of {@link GenesisPtoma}.
+   * @returns `true` if `value` is an instance of {@link CreatePtoma}.
    */
-  export function isPtoma(value: unknown): value is GenesisPtoma {
-    return value instanceof GenesisPtoma
+  export function isPtoma(value: unknown): value is CreatePtoma {
+    return value instanceof CreatePtoma
   }
 }
