@@ -1,0 +1,22 @@
+tasks:
+  test:
+    command: 'bun test'
+    deps:
+      - 'idion:build'
+      - 'zygon:build'
+      - 'rheon:build'
+      - 'ptoma:build'
+  lint:
+    command: 'biome check'
+    deps:
+      - 'idion:build'
+      - 'zygon:build'
+      - 'rheon:build'
+      - 'ptoma:build'
+  build:
+    command: 'bun run dist'
+    deps:
+      - 'idion:build'
+      - 'zygon:build'
+      - 'rheon:build'
+      - 'ptoma:build'
