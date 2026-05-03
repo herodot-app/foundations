@@ -90,6 +90,29 @@ export namespace Rheon {
   export type Infer<R extends Rheon<any>> = R extends Rheon<infer T> ? T : never
 
   /**
+   * A union type representing either a direct value of type `T` or a writer
+   * function that transforms the current value.
+   *
+   * When passed to {@link write}, a plain value replaces the rheon's content
+   * directly, while a writer function receives the current value and returns
+   * the new one — useful for atomic updates that depend on the existing state.
+   *
+   * @typeParam T - The value type the rheon holds.
+   *
+   * @example
+   * ```ts
+   * const counter = Rheon.create(0)
+   *
+   * // Direct value
+   * Rheon.write(counter, 42)
+   *
+   * // Writer function
+   * Rheon.write(counter, (n) => n + 1)
+   * ```
+   */
+  export type WriterOrValue<T> = T | ((value: T) => T)
+
+  /**
    * Creates a new {@link Rheon} wrapping the given `value`.
    *
    * Think of it as pouring water into a freshly conjured vessel — the vessel
@@ -137,19 +160,38 @@ export namespace Rheon {
    * The rheon is mutated directly — no new container is created. If you were
    * hoping for immutability you may have wandered into the wrong river.
    *
+   * Accepts either a direct value to replace the current one, or a writer
+   * function `(value: T) => T` that receives the current value and returns
+   * the new one — useful for atomic updates like incrementing a counter.
+   *
    * @typeParam T - The type of the contained value.
    * @param rheon - The rheon to update.
-   * @param value - The new value to store.
+   * @param writerOrValue - The new value to store, or a function that derives
+   *   it from the current value.
    *
    * @example
    * ```ts
    * const score = Rheon.create(0)
    * Rheon.write(score, 42)
    * console.log(Rheon.read(score)) // 42
+   *
+   * // Using a writer function
+   * Rheon.write(score, (n) => n + 1)
+   * console.log(Rheon.read(score)) // 43
    * ```
    */
-  export function write<T>(rheon: Rheon<T>, value: T): void {
-    rheon[valueIdentifier] = value
+  export function write<T>(
+    rheon: Rheon<T>,
+    writerOrValue: WriterOrValue<T>,
+  ): void {
+    if (typeof writerOrValue === 'function') {
+      // biome-ignore lint: we are sure that this is a function here
+      rheon[valueIdentifier] = (writerOrValue as any)(rheon[valueIdentifier])
+
+      return
+    }
+
+    rheon[valueIdentifier] = writerOrValue
   }
 
   /**

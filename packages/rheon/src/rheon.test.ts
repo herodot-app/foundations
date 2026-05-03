@@ -54,6 +54,51 @@ describe('Rheon.write', () => {
 
     expect(Rheon.read(rheon)).toBeNull()
   })
+
+  test('writer function receives current value', () => {
+    const rheon = Rheon.create(5)
+
+    Rheon.write(rheon, (v) => v * 2)
+
+    expect(Rheon.read(rheon)).toBe(10)
+  })
+
+  test('writer function works with strings', () => {
+    const rheon = Rheon.create('hello')
+
+    Rheon.write(rheon, (s) => s + ' world')
+
+    expect(Rheon.read(rheon)).toBe('hello world')
+  })
+
+  test('writer function works with objects', () => {
+    const rheon = Rheon.create({ count: 0 })
+
+    Rheon.write(rheon, (o) => ({ ...o, count: o.count + 1 }))
+
+    expect(Rheon.read(rheon)).toEqual({ count: 1 })
+  })
+
+  test('writer function is called exactly once', () => {
+    const rheon = Rheon.create(1)
+    let callCount = 0
+
+    Rheon.write(rheon, (v) => {
+      callCount++
+      return v + 1
+    })
+
+    expect(callCount).toBe(1)
+    expect(Rheon.read(rheon)).toBe(2)
+  })
+
+  test('writer function handles null values', () => {
+    const rheon = Rheon.create<string | null>(null)
+
+    Rheon.write(rheon, () => 'fallback')
+
+    expect(Rheon.read(rheon)).toBe('fallback')
+  })
 })
 
 describe('Rheon.is', () => {
@@ -91,5 +136,41 @@ describe('Rheon.valueIdentifier', () => {
       // biome-ignore lint: we want to ensure this is a global symbol
       Symbol.for('@herodot-app/rheon/value') as any,
     )
+  })
+})
+
+describe('Rheon.Infer', () => {
+  test('extracts value type in generic context', () => {
+    function snapshot<R extends Rheon<unknown>>(rheon: R): Rheon.Infer<R> {
+      return Rheon.read(rheon) as Rheon.Infer<R>
+    }
+
+    const rheon = Rheon.create('test')
+
+    expect(snapshot(rheon)).toBe('test')
+  })
+
+  test('works with numeric rheons', () => {
+    function double<R extends Rheon<number>>(rheon: R): Rheon.Infer<R> {
+      Rheon.write(rheon, (v) => v * 2)
+
+      return Rheon.read(rheon) as Rheon.Infer<R>
+    }
+
+    const rheon = Rheon.create(7)
+
+    expect(double(rheon)).toBe(14)
+  })
+
+  test('works with object rheons', () => {
+    function getValue<R extends Rheon<{ key: string }>>(
+      rheon: R,
+    ): Rheon.Infer<R> {
+      return Rheon.read(rheon) as Rheon.Infer<R>
+    }
+
+    const rheon = Rheon.create({ key: 'secret' })
+
+    expect(getValue(rheon)).toEqual({ key: 'secret' })
   })
 })

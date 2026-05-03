@@ -94,15 +94,20 @@ Use `Rheon.write` to update the container in place. The rheon is mutated directl
 ```ts
 const score = Rheon.create(0)
 
+// Direct value
 Rheon.write(score, 42)
 console.log(Rheon.read(score)) // 42
+
+// Writer function — receives the current value and returns the new one
+Rheon.write(score, (n) => n + 1)
+console.log(Rheon.read(score)) // 43
 ```
 
 Because the container is a stable reference, you can pass it around freely and any code holding a reference will always see the latest value when it calls `Rheon.read`:
 
 ```ts
 function increment(counter: Rheon<number>) {
-  Rheon.write(counter, Rheon.read(counter) + 1)
+  Rheon.write(counter, (n) => n + 1)
 }
 
 const hits = Rheon.create(0)
@@ -180,13 +185,29 @@ Returns the current value stored inside `rheon`. Does not mutate anything. Safe 
 Rheon.read(rheon) // T
 ```
 
-### `Rheon.write(rheon, value)`
+### `Rheon.write(rheon, writerOrValue)`
 
-Overwrites the value stored inside `rheon` in place. Returns `void`. There is no new container, no copy, no ceremony — just the river changing course.
+Updates the value stored inside `rheon` in place. Returns `void`. There is no new container, no copy, no ceremony — just the river changing course.
+
+Accepts either a **direct value** to replace the current one, or a **writer function** `(value: T) => T` that receives the current value and returns the new one — useful for atomic updates like incrementing a counter:
 
 ```ts
-Rheon.write(rheon, newValue)
+// Direct value
+Rheon.write(rheon, 'new value')
+
+// Writer function
+Rheon.write(rheon, (prev) => prev + 1)
 ```
+
+### `Rheon.WriterOrValue<T>`
+
+The union type representing what `Rheon.write` accepts as its second argument:
+
+```ts
+type WriterOrValue<T> = T | ((value: T) => T)
+```
+
+When passed a plain value `T`, `write` replaces the rheon's content directly. When passed a writer function `(value: T) => T`, it calls the function with the current value and stores the result. Useful for atomic updates that depend on the existing state.
 
 ### `Rheon.is(value)`
 
