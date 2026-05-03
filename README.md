@@ -41,6 +41,12 @@ Zygon is a typed Result/Either type for TypeScript. It makes your codebase safe 
 
 Agora is a typed pub/sub event bus. Modules announce things into it; other modules hear those things. Nobody needs to import anyone. The square does the work — with full TypeScript safety, resilient error collection, and a deferred delivery queue for the moments when your consumers arrive fashionably late.
 
+### [@herodot-app/sema](./packages/sema)
+
+> From Ancient Greek *σῆμα* — "sign, signal, mark". The root of semaphore and semantic. A sema is a landmark so travellers know where they have been.
+
+Sema gives you reactive, observable values with derived slices, batched updates, and deep equality out of the box. Every sema is identifiable at runtime, every derivation is a sema itself, and writes use structural equality to suppress redundant updates — reactive programming without the PhD in FRP.
+
 ### [@herodot-app/eidos](./packages/eidos)
 
 > From Ancient Greek *εἶδος* — "form", "shape", "essence". In Plato's philosophy, the Eidos is the ideal blueprint that real-world things are imperfect shadows of. Your runtime object is just a loose collection of bits hoping to be considered a `User`. The Eidos is the Form it must live up to.
