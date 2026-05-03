@@ -8,27 +8,24 @@ import { Idion } from '@herodot-app/idion'
  * bar that joins two oxen together. A `Zygon` yokes two possible worlds: the
  * happy path and the sad path.
  *
- * Internally, a Zygon holds either a {@link Zygon.Dexion} (success) or a
- * {@link Zygon.Skaion} (failure). Think of it as `Either<D, S>` if you are
- * fluent in Haskell, or `Result<D, S>` if you prefer Rust — just with more
+ * Internally, a Zygon holds either a {@link Zygon.Left} (success) or a
+ * {@link Zygon.Right} (failure). Think of it as `Either<L, R>` if you are
+ * fluent in Haskell, or `Result<L, R>` if you prefer Rust — just with more
  * Greek mythology.
  *
- * @typeParam D - The **D**exion (success / right) value type.
- * @typeParam S - The **S**kaion (failure / left) value type.
+ * @typeParam L - The success (left) value type.
+ * @typeParam R - The failure (right) value type.
  *
  * @example
  * ```ts
- * const result: Zygon<number, Error> = Zygon.dexion(42)
+ * const result: Zygon<number, Error> = Zygon.left(42)
  *
- * if (Zygon.isDexion(result)) {
- *   console.log('The answer is', result.right) // 42
+ * if (Zygon.isLeft(result)) {
+ *   console.log('The answer is', result.left) // 42
  * }
  * ```
  */
-export type Zygon<D, S = unknown> = Idion<
-  Zygon.Identifier,
-  Zygon.Dexion<D> | Zygon.Skaion<S>
->
+export type Zygon<L, R = unknown> = Zygon.Left<L> | Zygon.Right<R>
 
 export namespace Zygon {
   /**
@@ -42,105 +39,127 @@ export namespace Zygon {
   export type Identifier = typeof identifier
 
   /**
-   * The unique symbol that brands a {@link Dexion} (right/success) value.
+   * The unique symbol that brands a {@link Left} (right/success) value.
    */
-  export const dexionIdentifier = Symbol.for('@herodot-app/zygon/dexion')
+  export const leftIdentifier = Symbol.for('@herodot-app/zygon/left')
 
   /**
    * Type-level alias for the `Dexion` brand symbol.
    */
-  export type DexionIdentifier = typeof dexionIdentifier
+  export type LeftIdentifier = typeof leftIdentifier
 
   /**
-   * The unique symbol that brands a {@link Skaion} (left/failure) value.
+   * The unique symbol that brands a {@link Right} (left/failure) value.
    */
-  export const skaionIdentifier = Symbol.for('@herodot-app/zygon/skaion')
+  export const rightIdentifier = Symbol.for('@herodot-app/zygon/right')
 
   /**
    * Type-level alias for the `Skaion` brand symbol.
    */
-  export type SkaionIdentifier = typeof skaionIdentifier
+  export type RightIdentifier = typeof rightIdentifier
 
   /**
-   * The **Dexion** is the optimistic half of a {@link Zygon} — it holds the
-   * success value.
+   * The **Left** is the optimistic half of a {@link Zygon} — it holds the
+   * success value on the `.left` property.
    *
-   * The name comes from the Greek **δεξιόν** (_dexion_), derived from _dexios_
-   * meaning *right-handed*, *skillful*, or *favourable*. Historically the right
-   * side was the side of good omens — and here it lives up to its reputation:
-   * the success value sits on the `right` property, exactly where a good omen
-   * belongs. No irony, no footnotes, just a word that means what it does.
+   * Created by {@link left}. Check for it with {@link isLeft}.
    *
-   * @typeParam T - The type of the success value carried by this Dexion.
+   * @typeParam T - The type of the success value carried by this Left.
    */
-  export type Dexion<T> = Idion<
-    DexionIdentifier,
-    { right: T; left?: never; kind: 'right' }
+  export type Left<T> = Idion<
+    Identifier,
+    Idion<LeftIdentifier, { right?: never; left: T; kind: 'left' }>
   >
 
   /**
-   * The **Skaion** is the pessimistic half of a {@link Zygon} — it holds the
-   * failure value.
+   * The **Right** is the pessimistic half of a {@link Zygon} — it holds the
+   * failure value on the `.right` property.
    *
-   * The name comes from the Greek **σκαιόν** (_skaion_), derived from _skaios_
-   * meaning *left-handed*, *clumsy*, or *awkward*. In antiquity the left side
-   * was associated with bad omens (the Latin _sinister_ shares the same cultural
-   * baggage). Fittingly, the failure value lives on the `left` property — the
-   * etymology and the data model are finally in perfect, if slightly ominous, harmony.
+   * Created by {@link right}. Check for it with {@link isRight}.
    *
-   * @typeParam T - The type of the failure value carried by this Skaion.
+   * @typeParam T - The type of the failure value carried by this Right.
    */
-  export type Skaion<T> = Idion<
-    SkaionIdentifier,
-    { left: T; right?: never; kind: 'left' }
+  export type Right<T> = Idion<
+    Identifier,
+    Idion<RightIdentifier, { left?: never; right: T; kind: 'right' }>
   >
 
   /**
-   * Creates a {@link Dexion} — the success side of a {@link Zygon}.
+   * Extracts the success (`L`) type from a {@link Zygon}.
    *
-   * Call this when things go right (which is also literally where the value ends up).
+   * Resolves to the left-side type parameter when `Z` is a {@link Left}, or
+   * `never` when `Z` cannot carry a left value.
    *
-   * @typeParam T - The type of the success value.
-   * @param right - The success value to wrap.
-   * @returns A `Zygon` whose inner value is a `Dexion`.
+   * @typeParam Z - A `Zygon` type to inspect.
    *
    * @example
    * ```ts
-   * const ok = Zygon.dexion(42) // Zygon<number, unknown>
-   * ok.right // 42
+   * type Ok = Zygon.InferLeft<Zygon<number, Error>> // number
    * ```
    */
-  export function dexion<T>(right: T): Zygon<T, unknown> {
+  // biome-ignore lint: these types are intentionally any to allow for inference from the value passed to `left` and `right`.
+  export type InferLeft<Z extends Zygon<any, any>> =
+    Z extends Left<infer L> ? L : never
+
+  /**
+   * Extracts the failure (`R`) type from a {@link Zygon}.
+   *
+   * Resolves to the right-side type parameter when `Z` is a {@link Right}, or
+   * `never` when `Z` cannot carry a right value.
+   *
+   * @typeParam Z - A `Zygon` type to inspect.
+   *
+   * @example
+   * ```ts
+   * type Err = Zygon.InferRight<Zygon<number, Error>> // Error
+   * ```
+   */
+  // biome-ignore lint: these types are intentionally any to allow for inference from the value passed to `left` and `right`.
+  export type InferRight<Z extends Zygon<any, any>> =
+    Z extends Right<infer R> ? R : never
+
+  /**
+   * Creates a {@link Left} — the success side of a {@link Zygon}.
+   *
+   * @typeParam T - The type of the success value.
+   * @param left - The success value to wrap.
+   * @returns A `Zygon` whose inner value is a `Left`.
+   *
+   * @example
+   * ```ts
+   * const ok = Zygon.left(42) // Zygon<number, unknown>
+   * ok.left // 42
+   * ```
+   */
+  export function left<T>(left: T): Zygon<T, unknown> {
     return Idion.create({
       id: identifier,
       value: Idion.create({
-        id: dexionIdentifier,
-        value: { right, kind: 'right' },
+        id: leftIdentifier,
+        value: { left, kind: 'left' },
       }),
     })
   }
 
   /**
-   * Creates a {@link Skaion} — the failure side of a {@link Zygon}.
-   *
-   * Call this when things go wrong (which is also literally where the value ends up).
+   * Creates a {@link Right} — the failure side of a {@link Zygon}.
    *
    * @typeParam T - The type of the failure value.
-   * @param left - The failure value to wrap.
-   * @returns A `Zygon` whose inner value is a `Skaion`.
+   * @param right - The failure value to wrap.
+   * @returns A `Zygon` whose inner value is a `Right`.
    *
    * @example
    * ```ts
-   * const err = Zygon.skaion(new Error('oops')) // Zygon<unknown, Error>
-   * err.left // Error: oops
+   * const err = Zygon.right(new Error('oops')) // Zygon<unknown, Error>
+   * err.right // Error: oops
    * ```
    */
-  export function skaion<T>(left: T): Zygon<unknown, T> {
+  export function right<T>(right: T): Zygon<unknown, T> {
     return Idion.create({
       id: identifier,
       value: Idion.create({
-        id: skaionIdentifier,
-        value: { left, kind: 'left' },
+        id: rightIdentifier,
+        value: { right, kind: 'right' },
       }),
     })
   }
@@ -151,97 +170,93 @@ export namespace Zygon {
    * Useful at system boundaries where you receive `unknown` and need to confirm
    * you are holding an actual yoke before you try to drive the oxen.
    *
-   * @typeParam D - Expected Dexion value type (defaults to `unknown`).
-   * @typeParam S - Expected Skaion value type (defaults to `unknown`).
+   * @typeParam L - Expected left value type (defaults to `unknown`).
+   * @typeParam R - Expected right value type (defaults to `unknown`).
    * @param value - The value to inspect.
    */
-  export function is<D = unknown, S = unknown>(
+  export function is<L = unknown, R = unknown>(
     value: unknown,
-  ): value is Zygon<D, S> {
+  ): value is Zygon<L, R> {
     // biome-ignore lint: we have to cast to {} to satisfy the type checker, but we know this is safe because Idion.is will check the structure of the object
     return Idion.is(value as {}, identifier)
   }
 
   /**
-   * Type guard — returns `true` when `value` is a {@link Dexion} (the happy path).
+   * Type guard — returns `true` when `value` is a {@link Left} (the happy path).
    *
-   * @typeParam D - Expected success value type (defaults to `unknown`).
+   * @typeParam L - Expected success value type (defaults to `unknown`).
    * @param value - The value to inspect.
    */
-  export function isDexion<D = unknown>(value: unknown): value is Dexion<D> {
+  export function isLeft<L = unknown>(value: unknown): value is Left<L> {
     // biome-ignore lint: we have to cast to {} to satisfy the type checker, but we know this is safe because Idion.is will check the structure of the object
-    return Idion.is(value as {}, dexionIdentifier)
+    return Idion.is(value as {}, leftIdentifier)
   }
 
   /**
-   * Type guard — returns `true` when `value` is a {@link Skaion} (the sad path).
+   * Type guard — returns `true` when `value` is a {@link Right} (the sad path).
    *
-   * @typeParam S - Expected failure value type (defaults to `unknown`).
+   * @typeParam R - Expected failure value type (defaults to `unknown`).
    * @param value - The value to inspect.
    */
-  export function isSkaion<S = unknown>(value: unknown): value is Skaion<S> {
+  export function isRight<R = unknown>(value: unknown): value is Right<R> {
     // biome-ignore lint: we have to cast to {} to satisfy the type checker, but we know this is safe because Idion.is will check the structure of the object
-    return Idion.is(value as {}, skaionIdentifier)
+    return Idion.is(value as {}, rightIdentifier)
   }
 
   /**
-   * Extracts the success value from a {@link Zygon}, or returns `defaultRight`
-   * if the zygon turns out to be a {@link Skaion}.
-   *
-   * The "right" in the name refers to the `right` property on a {@link Dexion},
-   * which is where the success value lives. No ambiguity, no ancient Greek
-   * philosophical debate — just `.right`.
+   * Extracts the success value from a {@link Zygon}, or returns `defaultLeft`
+   * if the zygon turns out to be a {@link Right}.
    *
    * @param zygon - The zygon to unwrap.
-   * @param defaultRight - Fallback value returned when the zygon is a Skaion.
-   * @returns The success value, or `defaultRight`.
+   * @param defaultLeft - Fallback value returned when the zygon is a Right.
+   * @returns The success value, or `defaultLeft`.
    *
    * @example
    * ```ts
-   * Zygon.unwrapRight(Zygon.dexion(7), 0)      // → 7
-   * Zygon.unwrapRight(Zygon.skaion('oops'), 0)  // → 0
+   * Zygon.unwrapLeft(Zygon.left(7), 0)       // → 7
+   * Zygon.unwrapLeft(Zygon.right('oops'), 0) // → 0
    * ```
    */
-  export function unwrapRight<D, S = unknown>(
-    zygon: Zygon<D, S>,
-    defaultRight: D,
-  ): D {
-    if (!isDexion(zygon)) {
-      return defaultRight
-    }
-
-    return zygon.right
-  }
-
-  /**
-   * Alias for {@link unwrapRight} — the most common unwrap you will reach for.
-   * Because success is the default expectation, and pessimism is optional.
-   */
-  export const unwrap = unwrapRight
-
-  /**
-   * Extracts the failure value from a {@link Zygon}, or returns `defaultLeft`
-   * if the zygon turns out to be a {@link Dexion} (i.e., everything was fine).
-   *
-   * @param zygon - The zygon to unwrap.
-   * @param defaultLeft - Fallback value returned when the zygon is a Dexion.
-   * @returns The failure value, or `defaultLeft`.
-   *
-   * @example
-   * ```ts
-   * Zygon.unwrapLeft(Zygon.skaion('oops'), null)  // → 'oops'
-   * Zygon.unwrapLeft(Zygon.dexion(7), null)        // → null
-   * ```
-   */
-  export function unwrapLeft<D = unknown, S = unknown>(
-    zygon: Zygon<D, S>,
-    defaultLeft: S,
-  ): S {
-    if (!isSkaion(zygon)) {
+  export function unwrapLeft<L, R = unknown>(
+    zygon: Zygon<L, R>,
+    defaultLeft: L,
+  ): L {
+    if (!isLeft(zygon)) {
       return defaultLeft
     }
 
     return zygon.left
+  }
+
+  /**
+   * Alias for {@link unwrapLeft} — the most common unwrap you will reach for.
+   * Because success is the default expectation, and pessimism is optional.
+   */
+  export const unwrap = unwrapLeft
+
+  /**
+   * Extracts the failure value from a {@link Zygon}, or returns `defaultRight`
+   * if the zygon turns out to be a {@link Left} (i.e., everything was fine).
+   *
+   * @param zygon - The zygon to unwrap.
+   * @param defaultRight - Fallback value returned when the zygon is a Left.
+   * @returns The failure value, or `defaultRight`.
+   *
+   * @example
+   * ```ts
+   * Zygon.unwrapRight(Zygon.right('oops'), null) // → 'oops'
+   * Zygon.unwrapRight(Zygon.left(7), null)       // → null
+   * ```
+   */
+  export function unwrapRight<L = unknown, R = unknown>(
+    zygon: Zygon<L, R>,
+    defaultRight: R,
+  ): R {
+    if (!isRight(zygon)) {
+      return defaultRight
+    }
+
+    return zygon.right
   }
 
   /**
@@ -257,29 +272,29 @@ export namespace Zygon {
   export type AnyAsyncFn = (...args: any[]) => Promise<any>
 
   /**
-   * A function that converts a caught error into a typed {@link Skaion} value.
+   * A function that converts a caught error into a typed {@link Right} value.
    * Provide one whenever you want to transform the raw `unknown` thrown by the
    * universe into something your type system can actually reason about.
    *
-   * @typeParam S - The typed failure value produced by this mapper.
+   * @typeParam R - The typed failure value produced by this mapper.
    */
-  export type WrapRightFn<S> = (err: unknown) => S
+  export type WrapRightFn<R> = (err: unknown) => R
 
   /**
    * Wraps a synchronous function so that it **never throws** — instead it
-   * returns a {@link Zygon} where success lands in a {@link Dexion} and any
-   * thrown error lands in a {@link Skaion}.
+   * returns a {@link Zygon} where success lands in a {@link Left} and any
+   * thrown error lands in a {@link Right}.
    *
    * Ideal for taming third-party code that communicates failure via exceptions
    * (i.e., almost all of it).
    *
    * @typeParam Fn - The original synchronous function type.
-   * @typeParam S - The failure value type (inferred from `wrapRight` if provided).
+   * @typeParam R - The failure value type (inferred from `wrapRight` if provided).
    * @param fn - The function to wrap. It may throw; that is the whole point.
-   * @param wrapRight - Optional mapper from raw error to a typed `S`. When
-   *   omitted the caught value is cast to `S` directly — buyer beware.
+   * @param wrapRight - Optional mapper from raw error to a typed `R`. When
+   *   omitted the caught value is cast to `R` directly — buyer beware.
    * @returns A new function with the same parameters as `fn`, but returning
-   *   `Zygon<ReturnType<Fn>, S>` instead of throwing.
+   *   `Zygon<ReturnType<Fn>, R>` instead of throwing.
    *
    * @example
    * ```ts
@@ -289,33 +304,33 @@ export namespace Zygon {
    * // result is Zygon<unknown, SyntaxError>
    * ```
    */
-  export function wrap<Fn extends AnyFn, S = unknown>(
+  export function wrap<Fn extends AnyFn, R = unknown>(
     fn: Fn,
-    wrapRight?: WrapRightFn<S>,
-  ): (...args: Parameters<Fn>) => Zygon<ReturnType<Fn>, S> {
+    wrapRight?: WrapRightFn<R>,
+  ): (...args: Parameters<Fn>) => Zygon<ReturnType<Fn>, R> {
     return (...args: Parameters<Fn>) => {
       try {
         const right = fn(...args)
 
-        return dexion(right) as Zygon<ReturnType<Fn>, S>
+        return left(right) as Zygon<ReturnType<Fn>, R>
       } catch (err) {
-        const left = wrapRight ? wrapRight(err) : (err as unknown as S)
+        const left = wrapRight ? wrapRight(err) : (err as unknown as R)
 
-        return skaion(left) as Zygon<ReturnType<Fn>, S>
+        return right(left) as Zygon<ReturnType<Fn>, R>
       }
     }
   }
 
   /**
    * The async sibling of {@link wrap} — wraps an `async` function so that
-   * rejected promises become {@link Skaion} values instead of unhandled
+   * rejected promises become {@link Right} values instead of unhandled
    * rejections waiting to ruin your weekend.
    *
    * @typeParam Fn - The original async function type.
-   * @typeParam S - The failure value type.
+   * @typeParam R - The failure value type.
    * @param fn - The async function to wrap.
-   * @param wrapRight - Optional mapper from raw rejection reason to a typed `S`.
-   * @returns A new async function returning `Promise<Zygon<Awaited<ReturnType<Fn>>, S>>`.
+   * @param wrapRight - Optional mapper from raw rejection reason to a typed `R`.
+   * @returns A new async function returning `Promise<Zygon<Awaited<ReturnType<Fn>>, R>>`.
    *
    * @example
    * ```ts
@@ -325,19 +340,19 @@ export namespace Zygon {
    * // result is Zygon<Response, TypeError>
    * ```
    */
-  export function asyncWrap<Fn extends AnyAsyncFn, S = unknown>(
+  export function asyncWrap<Fn extends AnyAsyncFn, R = unknown>(
     fn: Fn,
-    wrapRight?: WrapRightFn<S>,
-  ): (...args: Parameters<Fn>) => Promise<Zygon<Awaited<ReturnType<Fn>>, S>> {
+    wrapRight?: WrapRightFn<R>,
+  ): (...args: Parameters<Fn>) => Promise<Zygon<Awaited<ReturnType<Fn>>, R>> {
     return async (...args: Parameters<Fn>) => {
       try {
         const right = await fn(...args)
 
-        return dexion(right) as Zygon<Awaited<ReturnType<Fn>>, S>
+        return left(right) as Zygon<Awaited<ReturnType<Fn>>, R>
       } catch (err) {
-        const left = wrapRight ? wrapRight(err) : (err as unknown as S)
+        const left = wrapRight ? wrapRight(err) : (err as unknown as R)
 
-        return skaion(left) as Zygon<Awaited<ReturnType<Fn>>, S>
+        return right(left) as Zygon<Awaited<ReturnType<Fn>>, R>
       }
     }
   }
