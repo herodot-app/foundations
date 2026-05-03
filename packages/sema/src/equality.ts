@@ -1,3 +1,24 @@
+import { Collection } from './collection'
+import { List } from './list'
+import { Scalar } from './scalar'
+
+/**
+ * A binary predicate that compares two values and returns `true` when they are
+ * considered equal under some definition of equality.
+ *
+ * This type is the generic contract for all equality functions in this module.
+ * It is also used by TanStack Store selectors to decide whether to trigger a
+ * re-render — pass a custom `Equality` function to fine-tune when a selector
+ * is considered "changed".
+ *
+ * @typeParam A - The type of the first operand.
+ * @typeParam B - The type of the second operand (often the same as `A`).
+ *
+ * @example
+ * ```ts
+ * const byId: Equality<{ id: number }, { id: number }> = (a, b) => a.id === b.id
+ * ```
+ */
 export type Equality<A, B = A> = (a: A, b: B) => boolean
 
 export namespace Equality {
@@ -25,6 +46,10 @@ export namespace Equality {
    * ```
    */
   export function strict<A>(a: A, b: A): boolean {
+    if (Number.isNaN(a) && Number.isNaN(b)) {
+      return true
+    }
+
     return a === b
   }
 
@@ -217,7 +242,10 @@ export namespace Equality {
     if (!length(valueA, valueB)) return false
 
     for (const index in valueA) {
-      if (!check(valueA[index], valueB[index])) return false
+      const a = [...valueA][Number(index)]
+      const b = [...valueB][Number(index)]
+
+      if (!check(a, b)) return false
     }
 
     return true
@@ -249,10 +277,30 @@ export namespace Equality {
 
     if (!Collection.is(valueB)) return false
 
-    if (!length(Object.keys(valueA), Object.keys(valueB))) return false
+    const keysOfA =
+      valueA instanceof Map ? [...valueA.keys()] : Object.keys(valueA)
+    const keysOfB =
+      valueB instanceof Map ? [...valueB.keys()] : Object.keys(valueB)
 
-    for (const key in valueA) {
-      if (!check(valueA[key], valueB[key])) return false
+    if (!length(keysOfA, keysOfB)) return false
+
+    const iterableObject =
+      valueA instanceof Map
+        ? valueA.entries().reduce(
+            (acc, [k, v]) => ({
+              // biome-ignore lint: we explicitly want to spread here
+              ...acc,
+              [k]: v,
+            }),
+            {},
+          )
+        : valueA
+
+    for (const key in iterableObject) {
+      const a = valueA instanceof Map ? valueA.get(key) : valueA[key]
+      const b = valueB instanceof Map ? valueB.get(key) : valueB[key]
+
+      if (!check(a, b)) return false
     }
 
     return true
