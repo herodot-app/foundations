@@ -67,11 +67,18 @@ describe('Signal', () => {
       expect(Rheon.is(signal.frozenRef)).toBe(true)
     })
 
-    test('initializes empty listeners set', () => {
+    test('initializes empty citizens set', () => {
       const signal = Signal.create(42)
 
-      expect(signal.listeners).toBeInstanceOf(Set)
-      expect(signal.listeners.size).toBe(0)
+      expect(signal.citizens).toBeInstanceOf(Set)
+      expect(signal.citizens.size).toBe(0)
+    })
+
+    test('initializes empty registry', () => {
+      const signal = Signal.create(42)
+
+      expect(signal.registry).toBeInstanceOf(Set)
+      expect(signal.registry.size).toBe(0)
     })
 
     test('creates a signal with number value', () => {
@@ -150,7 +157,8 @@ describe('Signal', () => {
       expect(signalA).not.toBe(signalB)
       expect(signalA.valueRef).not.toBe(signalB.valueRef)
       expect(signalA.oldValueRef).not.toBe(signalB.oldValueRef)
-      expect(signalA.listeners).not.toBe(signalB.listeners)
+      expect(signalA.citizens).not.toBe(signalB.citizens)
+      expect(signalA.registry).not.toBe(signalB.registry)
       expect(signalA.frozenRef).not.toBe(signalB.frozenRef)
     })
   })

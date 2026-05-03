@@ -1,4 +1,4 @@
-import type { Agora } from '@herodot-app/agora'
+import { Agora } from '@herodot-app/agora'
 import { Idion } from '@herodot-app/idion'
 import { Rheon } from '@herodot-app/rheon'
 
@@ -22,36 +22,32 @@ import { Rheon } from '@herodot-app/rheon'
  * mutation.write(1)
  * query.read() // 1
  */
-export type Signal<T> = Idion<
-  Signal.Identifier,
-  {
-    /**
-     * Snapshot of the value at creation time — used by `SignalMutation.reset`.
-     */
-    readonly initialValue: T
+export type Signal<T> = Agora<T> &
+  Idion<
+    Signal.Identifier,
+    {
+      /**
+       * Snapshot of the value at creation time — used by `SignalMutation.reset`.
+       */
+      readonly initialValue: T
 
-    /**
-     * The current value of the signal.
-     */
-    valueRef: Rheon<T>
+      /**
+       * The current value of the signal.
+       */
+      valueRef: Rheon<T>
 
-    /**
-     * The value the signal held before the last write — used by listeners.
-     */
-    oldValueRef: Rheon<T>
+      /**
+       * The value the signal held before the last write — used by listeners.
+       */
+      oldValueRef: Rheon<T>
 
-    /**
-     * Active listener callbacks, managed by `SignalObserver`.
-     */
-    listeners: Set<Agora.Listener<T>>
-
-    /**
-     * When `true`, writes still update `valueRef` but listeners are not
-     * notified and `oldValueRef` is not updated until unfrozen.
-     */
-    frozenRef: Rheon<boolean>
-  }
->
+      /**
+       * When `true`, writes still update `valueRef` but listeners are not
+       * notified and `oldValueRef` is not updated until unfrozen.
+       */
+      frozenRef: Rheon<boolean>
+    }
+  >
 
 export namespace Signal {
   /**
@@ -80,18 +76,18 @@ export namespace Signal {
    */
   export function create<T>(value: T): Signal<T> {
     const initialValue = value
+    const agora = Agora.create<T>()
     const valueRef = Rheon.create(value)
     const oldValueRef = Rheon.create(value)
-    const listeners = new Set<Agora.Listener<T>>()
     const frozenRef = Rheon.create(false)
 
     return Idion.create({
       id: identifier,
       value: {
+        ...agora,
         initialValue,
         valueRef,
         oldValueRef,
-        listeners,
         frozenRef,
       },
     })
