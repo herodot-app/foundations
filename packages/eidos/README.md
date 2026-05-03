@@ -35,26 +35,26 @@ try {
 }
 ```
 
-Eidos gives you a better contract: define your Form once with a name and a schema, call `genesis` to bring data into typed existence, and get back a `Zygon` — success on the right, a structured `GenesisPtoma` on the left. No exceptions escaping. No `as` casts. No library lock-in. The Form judges; the Zygon carries the verdict.
+Eidos gives you a better contract: define your Form once with a name and a schema, call `create` to bring data into typed existence, and get back a `Zygon` — success on the left, a structured `CreatePtoma` on the right. No exceptions escaping. No `as` casts. No library lock-in. The Form judges; the Zygon carries the verdict.
 
 ```ts
 import * as v from 'valibot'
 import { Eidos } from '@herodot-app/eidos'
 import { Zygon } from '@herodot-app/zygon'
 
-const UserEidos = Eidos.horismos({
+const UserEidos = Eidos.define({
   name: 'User',
   schema: v.object({ id: v.string(), age: v.number() }),
 })
 
-const result = Eidos.genesis(UserEidos, incoming)
+const result = Eidos.create(UserEidos, incoming)
 
 if (Zygon.isLeft(result)) {
   // result.left is typed as { id: string; age: number } — validated, safe to use
 }
 
 if (Zygon.isRight(result)) {
-  // result.right is a GenesisPtoma with the full list of schema issues
+  // result.right is a CreatePtoma with the full list of schema issues
   console.error(result.right.payload.issues)
 }
 ```
@@ -87,9 +87,9 @@ Eidos depends on `@herodot-app/idion` for the branded identity layer, `@herodot-
 
 ## How to use it
 
-### Define a Form with `horismos`
+### Define a Form with `define`
 
-Use `Eidos.horismos` to create a named, typed Form. Supply a `name` and a Standard Schema-compatible `schema`. The function name comes from **ὁρισμός** (_horismos_) — "definition", "boundary". In Aristotelian logic, a *horismos* draws the line between what a thing is and what it is not. That is exactly what this function does.
+Use `Eidos.define` to create a named, typed Form. Supply a `name` and a Standard Schema-compatible `schema`.
 
 ```ts
 import * as v from 'valibot'
@@ -97,21 +97,21 @@ import { z } from 'zod'
 import { Eidos } from '@herodot-app/eidos'
 
 // With Valibot
-const UserEidos = Eidos.horismos({
+const UserEidos = Eidos.define({
   name: 'User',
   schema: v.object({ id: v.string(), age: v.number() }),
 })
 //    ^? Eidos<'User', { id: string; age: number }, { id: string; age: number }>
 
 // With Zod
-const EmailEidos = Eidos.horismos({
+const EmailEidos = Eidos.define({
   name: 'Email',
   schema: z.string().email(),
 })
 
 // With a symbol name — for Forms that are known only to whoever holds the symbol
 const sym = Symbol('InternalEvent')
-const InternalEventEidos = Eidos.horismos({
+const InternalEventEidos = Eidos.define({
   name: sym,
   schema: v.object({ type: v.string(), ts: v.number() }),
 })
@@ -119,15 +119,15 @@ const InternalEventEidos = Eidos.horismos({
 
 The `name` is purely a label — it travels with the Form for identification and debugging purposes. It does not affect validation. A string works for human-readable labels; a symbol works when you want a name that is truly unguessable.
 
-### Bring data into existence with `genesis`
+### Bring data into existence with `create`
 
-Use `Eidos.genesis` to validate raw input against an Eidos's schema. The function name comes from **γένεσις** (_genesis_) — "origin", "creation", "coming into being". This is the moment a raw value either rises to the level of its ideal Form, or is politely turned away at the door.
+Use `Eidos.create` to validate raw input against an Eidos's schema. This is the moment a raw value either rises to the level of its ideal Form, or is politely turned away at the door.
 
 ```ts
 import { Zygon } from '@herodot-app/zygon'
 
-const result = Eidos.genesis(UserEidos, { id: 'u1', age: 30 })
-//    ^? Zygon<{ id: string; age: number }, Eidos.GenesisPtoma>
+const result = Eidos.create(UserEidos, { id: 'u1', age: 30 })
+//    ^? Zygon<{ id: string; age: number }, Eidos.CreatePtoma>
 
 if (Zygon.isLeft(result)) {
   const user = result.left  // typed as { id: string; age: number }
@@ -135,24 +135,24 @@ if (Zygon.isLeft(result)) {
 }
 
 if (Zygon.isRight(result)) {
-  const failure = result.right  // Eidos.GenesisPtoma
+  const failure = result.right  // Eidos.CreatePtoma
   console.error('Validation failed:', failure.payload.issues)
   // [{ message: 'Expected string, received number', path: ['id'] }, ...]
 }
 ```
 
-`genesis` never throws. If the schema throws internally (which well-behaved Standard Schema libraries do not), that is the schema's problem, not yours — and it will still surface as an issue rather than an escaped exception.
+`create` never throws. If the schema throws internally (which well-behaved Standard Schema libraries do not), that is the schema's problem, not yours — and it will still surface as an issue rather than an escaped exception.
 
 Schemas that transform data (Zod's `.transform()`, Valibot's `v.transform()`) are fully supported. The output type `O` of the Eidos reflects the transformed shape — so you can validate *and* coerce in one step.
 
 ```ts
-const TimestampEidos = Eidos.horismos({
+const TimestampEidos = Eidos.define({
   name: 'Timestamp',
   schema: z.string().datetime().transform((s) => new Date(s)),
   //                                        input: string → output: Date
 })
 
-const result = Eidos.genesis(TimestampEidos, '2025-01-01T00:00:00Z')
+const result = Eidos.create(TimestampEidos, '2025-01-01T00:00:00Z')
 
 if (Zygon.isLeft(result)) {
   result.left  // typed as Date — already transformed, ready to use
@@ -161,7 +161,7 @@ if (Zygon.isLeft(result)) {
 
 ### Check for a validation failure with `isPtoma`
 
-Use `Eidos.isPtoma` to distinguish a validation failure from any other error that might appear on the left side of a `Zygon`. Useful when you are composing results and need to know whether you are dealing with a bad input or a different category of problem entirely.
+Use `Eidos.isPtoma` to distinguish a validation failure from any other error that might appear on the right side of a `Zygon`. Useful when you are composing results and need to know whether you are dealing with a bad input or a different category of problem entirely.
 
 ```ts
 if (Zygon.isRight(result)) {
@@ -184,7 +184,7 @@ if (Eidos.is(maybeEidos)) {
 
 // Narrow to a more specific type when you know what to expect
 if (Eidos.is<'User', { id: string }>(maybeEidos)) {
-  Eidos.genesis(maybeEidos, input)
+  Eidos.create(maybeEidos, input)
 }
 ```
 
@@ -206,21 +206,64 @@ The type of a named, typed Form. Under the hood it is an `Idion` branded with `E
 
 The union type `string | symbol` — the allowed types for an Eidos name. Both are first-class citizens. A string for human-readable labels; a symbol for names that are known only to whoever holds the reference.
 
+### `Eidos.Infer<E>`
+
+Extracts the **validated output type** (`O`) from an `Eidos` at the type level. This is what you receive on the left side of a successful `create` call — the shape the schema produces after validation (and any transforms). Purely compile-time; zero runtime cost.
+
+```ts
+const UserEidos = Eidos.define({
+  name: 'User',
+  schema: v.object({ id: v.string(), age: v.number() }),
+})
+
+type User = Eidos.Infer<typeof UserEidos>
+//   ^? { id: string; age: number }
+```
+
+Particularly useful for declaring function parameters or return types that match a Form without repeating the schema shape inline.
+
+### `Eidos.InferInput<E>`
+
+Extracts the **raw input type** (`I`) accepted by an `Eidos`'s schema — the unvalidated shape you pass *into* `create` before the schema runs.
+
+For schemas without transforms, `InferInput` and `Infer` return the same type. They diverge when a transform is involved:
+
+```ts
+const TimestampEidos = Eidos.define({
+  name: 'Timestamp',
+  schema: z.string().datetime().transform((s) => new Date(s)),
+})
+
+type RawTimestamp    = Eidos.InferInput<typeof TimestampEidos>  // string
+type ParsedTimestamp = Eidos.Infer<typeof TimestampEidos>       // Date
+```
+
+### `Eidos.InferName<E>`
+
+Extracts the **name literal** (`N`) from an `Eidos` — the exact string or symbol passed as `name` to `define`. Useful for building type-level registries or narrowing on Eidos identity without holding a runtime reference.
+
+```ts
+const UserEidos = Eidos.define({ name: 'User', schema: userSchema })
+
+type UserName = Eidos.InferName<typeof UserEidos>
+//   ^? 'User'
+```
+
 ### `Eidos.Options<N, I, O>`
 
-The input shape expected by `Eidos.horismos`.
+The input shape expected by `Eidos.define`.
 
 | Property | Description |
 |----------|-------------|
 | `name` | The `N` label that identifies this Eidos. |
 | `schema` | A `StandardSchemaV1<I, O>`-compliant schema that defines the Form. |
 
-### `Eidos.horismos(options)`
+### `Eidos.define(options)`
 
-Creates a new `Eidos` from a name and a schema. Returns a fully branded `Eidos<N, I, O>` ready for use with `genesis`.
+Creates a new `Eidos` from a name and a schema. Returns a fully branded `Eidos<N, I, O>` ready for use with `create`.
 
 ```ts
-const ScoreEidos = Eidos.horismos({
+const ScoreEidos = Eidos.define({
   name: 'Score',
   schema: v.pipe(v.number(), v.minValue(0), v.maxValue(100)),
 })
@@ -231,9 +274,9 @@ const ScoreEidos = Eidos.horismos({
 |-----------|-------------|
 | `options` | An `Eidos.Options<N, I, O>` object containing `name` and `schema`. |
 
-### `Eidos.genesis(eidos, input)`
+### `Eidos.create(eidos, input)`
 
-Validates `input` against `eidos`'s schema and returns a `Zygon<O, GenesisPtoma>`. Never throws.
+Validates `input` against `eidos`'s schema and returns a `Zygon<O, CreatePtoma>`. Never throws.
 
 | Parameter | Description |
 |-----------|-------------|
@@ -242,11 +285,11 @@ Validates `input` against `eidos`'s schema and returns a `Zygon<O, GenesisPtoma>
 
 Returns:
 - `Zygon.Left<O>` — the validated (and possibly transformed) output value.
-- `Zygon.Right<GenesisPtoma>` — a `GenesisPtoma` carrying the list of schema issues.
+- `Zygon.Right<CreatePtoma>` — a `CreatePtoma` carrying the list of schema issues.
 
-### `Eidos.GenesisPtoma`
+### `Eidos.CreatePtoma`
 
-The typed error produced when `genesis` rejects its input. A `Ptoma` with identifier `'@herodot-app/eidos/genesis-ptoma'` and a `payload.issues` of type `ReadonlyArray<StandardSchemaV1.Issue>` — the full list of everything the schema found objectionable about the input.
+The typed error produced when `create` rejects its input. A `Ptoma` with identifier `'@herodot-app/eidos/create-ptoma'` and a `payload.issues` of type `ReadonlyArray<StandardSchemaV1.Issue>` — the full list of everything the schema found objectionable about the input.
 
 ```ts
 if (Zygon.isRight(result)) {
@@ -257,21 +300,21 @@ if (Zygon.isRight(result)) {
 
 The identifier is a plain string (not a symbol) so it survives serialisation — handy when you need to log or transmit the failure and the reader cannot import this module to compare symbols.
 
-### `Eidos.genesisPtomaIdentifier`
+### `Eidos.createPtomaIdentifier`
 
-The string `'@herodot-app/eidos/genesis-ptoma'` — the well-known identifier that brands every `GenesisPtoma`. Use it with `Ptoma.is` to check whether a `Ptoma` value is specifically a validation failure from this library.
+The string `'@herodot-app/eidos/create-ptoma'` — the well-known identifier that brands every `CreatePtoma`. Use it with `Ptoma.is` to check whether a `Ptoma` value is specifically a validation failure from this library.
 
 ```ts
 import { Ptoma } from '@herodot-app/ptoma'
 
-if (Ptoma.is(error, Eidos.genesisPtomaIdentifier)) {
-  // error is Eidos.GenesisPtoma
+if (Ptoma.is(error, Eidos.createPtomaIdentifier)) {
+  // error is Eidos.CreatePtoma
 }
 ```
 
 ### `Eidos.isPtoma(value)`
 
-Type guard that returns `true` when `value` is an `Eidos.GenesisPtoma` instance. Equivalent to `Ptoma.is(value, Eidos.genesisPtomaIdentifier)`, but saves you the import.
+Type guard that returns `true` when `value` is an `Eidos.CreatePtoma` instance. Equivalent to `value instanceof Eidos.CreatePtoma`, but saves you the import dance.
 
 | Parameter | Description |
 |-----------|-------------|
