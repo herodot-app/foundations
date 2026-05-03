@@ -28,10 +28,10 @@ describe('Agora', () => {
       expect(agora.citizens.size).toBe(0)
     })
 
-    test('starts with an empty keryssos queue', () => {
+    test('starts with an empty registry queue', () => {
       const agora = Agora.create()
 
-      expect(agora.keryssos.size).toBe(0)
+      expect(agora.registry.size).toBe(0)
     })
 
     test('creates independent instances', () => {
@@ -40,36 +40,36 @@ describe('Agora', () => {
 
       expect(a).not.toBe(b)
       expect(a.citizens).not.toBe(b.citizens)
-      expect(a.keryssos).not.toBe(b.keryssos)
+      expect(a.registry).not.toBe(b.registry)
     })
   })
 
-  describe('akouo', () => {
+  describe('listen', () => {
     test('adds a citizen to the agora', () => {
       const agora = Agora.create()
       const listener = () => {}
 
-      Agora.akouo(agora, listener)
+      Agora.listen(agora, listener)
 
       expect(agora.citizens.size).toBe(1)
       expect(agora.citizens.has(listener)).toBe(true)
     })
 
-    test('returns an apotasso (unsubscribe) function', () => {
+    test('returns an unlistener function', () => {
       const agora = Agora.create()
 
-      const apotasso = Agora.akouo(agora, () => {})
+      const unlisten = Agora.listen(agora, () => {})
 
-      expect(typeof apotasso).toBe('function')
+      expect(typeof unlisten).toBe('function')
     })
 
-    test('apotasso removes the citizen from the agora', () => {
+    test('calling the unlistener removes the citizen from the agora', () => {
       const agora = Agora.create()
       const listener = () => {}
 
-      const apotasso = Agora.akouo(agora, listener)
+      const unlisten = Agora.listen(agora, listener)
 
-      apotasso()
+      unlisten()
 
       expect(agora.citizens.size).toBe(0)
       expect(agora.citizens.has(listener)).toBe(false)
@@ -78,110 +78,110 @@ describe('Agora', () => {
     test('multiple citizens can be registered independently', () => {
       const agora = Agora.create()
 
-      Agora.akouo(agora, () => {})
-      Agora.akouo(agora, () => {})
-      Agora.akouo(agora, () => {})
+      Agora.listen(agora, () => {})
+      Agora.listen(agora, () => {})
+      Agora.listen(agora, () => {})
 
       expect(agora.citizens.size).toBe(3)
     })
 
-    test('apotasso only removes its own citizen', () => {
+    test('unlistener only removes its own citizen', () => {
       const agora = Agora.create<string>()
       const listener1 = (_: string) => {}
       const listener2 = (_: string) => {}
 
-      const apotasso1 = Agora.akouo(agora, listener1)
+      const unlisten1 = Agora.listen(agora, listener1)
 
-      Agora.akouo(agora, listener2)
+      Agora.listen(agora, listener2)
 
-      apotasso1()
+      unlisten1()
 
       expect(agora.citizens.size).toBe(1)
       expect(agora.citizens.has(listener2)).toBe(true)
     })
   })
 
-  describe('plethos', () => {
-    test('returns 0 citizens and 0 keryssos for an empty agora', () => {
+  describe('inspect', () => {
+    test('returns 0 citizens and 0 registry for an empty agora', () => {
       const agora = Agora.create()
 
-      expect(Agora.plethos(agora)).toEqual({ citizens: 0, keryssos: 0 })
+      expect(Agora.inspect(agora)).toEqual({ citizens: 0, registry: 0 })
     })
 
     test('returns the number of registered citizens', () => {
       const agora = Agora.create()
 
-      Agora.akouo(agora, () => {})
-      Agora.akouo(agora, () => {})
+      Agora.listen(agora, () => {})
+      Agora.listen(agora, () => {})
 
-      expect(Agora.plethos(agora).citizens).toBe(2)
+      expect(Agora.inspect(agora).citizens).toBe(2)
     })
 
-    test('reflects the keryssos queue size', () => {
+    test('reflects the registry queue size', () => {
       const agora = Agora.create<number>()
 
-      Agora.katatasso(agora, 1)
-      Agora.katatasso(agora, 2)
+      Agora.register(agora, 1)
+      Agora.register(agora, 2)
 
-      expect(Agora.plethos(agora).keryssos).toBe(2)
+      expect(Agora.inspect(agora).registry).toBe(2)
     })
 
-    test('decrements citizens after an apotasso call', () => {
+    test('decrements citizens after an unlisten call', () => {
       const agora = Agora.create()
-      const apotasso = Agora.akouo(agora, () => {})
+      const unlisten = Agora.listen(agora, () => {})
 
-      Agora.akouo(agora, () => {})
+      Agora.listen(agora, () => {})
 
-      apotasso()
+      unlisten()
 
-      expect(Agora.plethos(agora).citizens).toBe(1)
+      expect(Agora.inspect(agora).citizens).toBe(1)
     })
 
-    test('returns 0 citizens and 0 keryssos after dialyo', () => {
+    test('returns 0 citizens and 0 registry after clear', () => {
       const agora = Agora.create<string>()
 
-      Agora.akouo(agora, () => {})
-      Agora.akouo(agora, () => {})
-      Agora.katatasso(agora, 'msg')
+      Agora.listen(agora, () => {})
+      Agora.listen(agora, () => {})
+      Agora.register(agora, 'msg')
 
-      Agora.dialyo(agora)
+      Agora.clear(agora)
 
-      expect(Agora.plethos(agora)).toEqual({ citizens: 0, keryssos: 0 })
+      expect(Agora.inspect(agora)).toEqual({ citizens: 0, registry: 0 })
     })
   })
 
-  describe('kerysso', () => {
+  describe('publish', () => {
     test('calls all citizens with the given payload', () => {
       const agora = Agora.create<string>()
       const received: string[] = []
 
-      Agora.akouo(agora, (msg) => received.push(msg))
-      Agora.akouo(agora, (msg) => received.push(msg))
+      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.listen(agora, (msg) => received.push(msg))
 
-      Agora.kerysso(agora, 'hello')
+      Agora.publish(agora, 'hello')
 
       expect(received).toEqual(['hello', 'hello'])
     })
 
-    test('returns a dexion when all citizens succeed', () => {
+    test('returns a left when all citizens succeed', () => {
       const agora = Agora.create<number>()
-      Agora.akouo(agora, () => {})
+      Agora.listen(agora, () => {})
 
-      const result = Agora.kerysso(agora, 42)
+      const result = Agora.publish(agora, 42)
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(true)
     })
 
-    test('returns a skaion when a citizen throws', () => {
+    test('returns a right when a citizen throws', () => {
       const agora = Agora.create<number>()
       const err = new Error('citizen failed')
 
-      Agora.akouo(agora, () => {
+      Agora.listen(agora, () => {
         throw err
       })
 
-      const result = Agora.kerysso(agora, 42)
+      const result = Agora.publish(agora, 42)
 
       expect(Zygon.isRight(result)).toBe(true)
       expect(result.right).toEqual([err])
@@ -191,20 +191,20 @@ describe('Agora', () => {
       const agora = Agora.create<string>()
       const received: string[] = []
 
-      Agora.akouo(agora, () => {
+      Agora.listen(agora, () => {
         throw new Error('boom')
       })
-      Agora.akouo(agora, (msg) => received.push(msg))
+      Agora.listen(agora, (msg) => received.push(msg))
 
-      Agora.kerysso(agora, 'test')
+      Agora.publish(agora, 'test')
 
       expect(received).toEqual(['test'])
     })
 
-    test('returns a dexion with no citizens', () => {
+    test('returns a left with no citizens', () => {
       const agora = Agora.create()
 
-      const result = Agora.kerysso(agora)
+      const result = Agora.publish(agora)
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(true)
@@ -214,67 +214,67 @@ describe('Agora', () => {
       const agora = Agora.create()
       let called = false
 
-      Agora.akouo(agora, () => {
+      Agora.listen(agora, () => {
         called = true
       })
 
-      Agora.kerysso(agora)
+      Agora.publish(agora)
 
       expect(called).toBe(true)
     })
   })
 
-  describe('katatasso', () => {
-    test('enqueues a payload into keryssos', () => {
+  describe('register', () => {
+    test('enqueues a payload into the registry', () => {
       const agora = Agora.create<string>()
 
-      Agora.katatasso(agora, 'queued')
+      Agora.register(agora, 'queued')
 
-      expect(agora.keryssos.size).toBe(1)
-      expect(agora.keryssos.has('queued')).toBe(true)
+      expect(agora.registry.size).toBe(1)
+      expect(agora.registry.has('queued')).toBe(true)
     })
 
     test('multiple distinct payloads can be queued', () => {
       const agora = Agora.create<number>()
 
-      Agora.katatasso(agora, 1)
-      Agora.katatasso(agora, 2)
-      Agora.katatasso(agora, 3)
+      Agora.register(agora, 1)
+      Agora.register(agora, 2)
+      Agora.register(agora, 3)
 
-      expect(agora.keryssos.size).toBe(3)
+      expect(agora.registry.size).toBe(3)
     })
 
     test('works without a payload (undefined default)', () => {
       const agora = Agora.create()
 
-      Agora.katatasso(agora)
+      Agora.register(agora)
 
-      expect(agora.keryssos.size).toBe(1)
+      expect(agora.registry.size).toBe(1)
     })
 
     test('does not notify citizens immediately', () => {
       const agora = Agora.create<string>()
       let called = false
 
-      Agora.akouo(agora, () => {
+      Agora.listen(agora, () => {
         called = true
       })
-      Agora.katatasso(agora, 'msg')
+      Agora.register(agora, 'msg')
 
       expect(called).toBe(false)
     })
   })
 
-  describe('diangelo', () => {
+  describe('dispatch', () => {
     test('dispatches each queued payload to each citizen', () => {
       const agora = Agora.create<string>()
       const received: string[] = []
 
-      Agora.akouo(agora, (msg) => received.push(msg))
-      Agora.katatasso(agora, 'first')
-      Agora.katatasso(agora, 'second')
+      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.register(agora, 'first')
+      Agora.register(agora, 'second')
 
-      Agora.diangelo(agora)
+      Agora.dispatch(agora)
 
       expect(received).toContain('first')
       expect(received).toContain('second')
@@ -284,67 +284,67 @@ describe('Agora', () => {
       const agora = Agora.create<number>()
       const calls: [string, number][] = []
 
-      Agora.akouo(agora, (n) => calls.push(['a', n]))
-      Agora.akouo(agora, (n) => calls.push(['b', n]))
-      Agora.katatasso(agora, 1)
-      Agora.katatasso(agora, 2)
+      Agora.listen(agora, (n) => calls.push(['a', n]))
+      Agora.listen(agora, (n) => calls.push(['b', n]))
+      Agora.register(agora, 1)
+      Agora.register(agora, 2)
 
-      Agora.diangelo(agora)
+      Agora.dispatch(agora)
 
       expect(calls.filter(([, n]) => n === 1).length).toBe(2)
       expect(calls.filter(([, n]) => n === 2).length).toBe(2)
     })
 
-    test('clears the keryssos queue after dispatching', () => {
+    test('clears the registry queue after dispatching', () => {
       const agora = Agora.create<string>()
-      Agora.katatasso(agora, 'msg')
+      Agora.register(agora, 'msg')
 
-      Agora.diangelo(agora)
+      Agora.dispatch(agora)
 
-      expect(agora.keryssos.size).toBe(0)
+      expect(agora.registry.size).toBe(0)
     })
 
     test('clears the queue even when a citizen throws', () => {
       const agora = Agora.create<string>()
-      Agora.akouo(agora, () => {
+      Agora.listen(agora, () => {
         throw new Error('boom')
       })
-      Agora.katatasso(agora, 'msg')
+      Agora.register(agora, 'msg')
 
-      Agora.diangelo(agora)
+      Agora.dispatch(agora)
 
-      expect(agora.keryssos.size).toBe(0)
+      expect(agora.registry.size).toBe(0)
     })
 
-    test('returns a dexion when all dispatches succeed', () => {
+    test('returns a left when all dispatches succeed', () => {
       const agora = Agora.create<number>()
-      Agora.akouo(agora, () => {})
-      Agora.katatasso(agora, 1)
+      Agora.listen(agora, () => {})
+      Agora.register(agora, 1)
 
-      const result = Agora.diangelo(agora)
+      const result = Agora.dispatch(agora)
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(true)
     })
 
-    test('returns a skaion when a citizen throws', () => {
+    test('returns a right when a citizen throws', () => {
       const agora = Agora.create<number>()
       const err = new Error('dispatch failed')
-      Agora.akouo(agora, () => {
+      Agora.listen(agora, () => {
         throw err
       })
-      Agora.katatasso(agora, 42)
+      Agora.register(agora, 42)
 
-      const result = Agora.diangelo(agora)
+      const result = Agora.dispatch(agora)
 
       expect(Zygon.isRight(result)).toBe(true)
       expect(result.right).toEqual([[err]])
     })
 
-    test('returns a dexion for an empty queue', () => {
+    test('returns a left for an empty queue', () => {
       const agora = Agora.create()
 
-      const result = Agora.diangelo(agora)
+      const result = Agora.dispatch(agora)
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(true)
@@ -373,7 +373,7 @@ describe('Agora', () => {
     })
 
     test('returns false for a plain object', () => {
-      expect(Agora.is({ citizens: new Set(), keryssos: new Set() })).toBe(false)
+      expect(Agora.is({ citizens: new Set(), registry: new Set() })).toBe(false)
     })
 
     test('returns false for a primitive', () => {
@@ -393,38 +393,38 @@ describe('Agora', () => {
     })
   })
 
-  describe('dialyo', () => {
+  describe('clear', () => {
     test('removes all citizens', () => {
       const agora = Agora.create()
-      Agora.akouo(agora, () => {})
-      Agora.akouo(agora, () => {})
+      Agora.listen(agora, () => {})
+      Agora.listen(agora, () => {})
 
-      Agora.dialyo(agora)
+      Agora.clear(agora)
 
       expect(agora.citizens.size).toBe(0)
     })
 
-    test('citizens no longer receive announcements after dialyo', () => {
+    test('citizens no longer receive announcements after clear', () => {
       const agora = Agora.create<string>()
       let called = false
 
-      Agora.akouo(agora, () => {
+      Agora.listen(agora, () => {
         called = true
       })
 
-      Agora.dialyo(agora)
-      Agora.kerysso(agora, 'msg')
+      Agora.clear(agora)
+      Agora.publish(agora, 'msg')
 
       expect(called).toBe(false)
     })
 
-    test('also clears the keryssos queue', () => {
+    test('also clears the registry queue', () => {
       const agora = Agora.create<string>()
-      Agora.katatasso(agora, 'queued')
+      Agora.register(agora, 'queued')
 
-      Agora.dialyo(agora)
+      Agora.clear(agora)
 
-      expect(agora.keryssos.size).toBe(0)
+      expect(agora.registry.size).toBe(0)
     })
   })
 })
