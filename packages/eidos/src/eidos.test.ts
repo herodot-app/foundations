@@ -194,7 +194,9 @@ describe('Eidos', () => {
       const error = Zygon.unwrapRight(result, null)
 
       expect(Ptoma.is(error, Eidos.createPtomaIdentifier)).toBe(true)
+
       const issues = (error as Eidos.CreatePtoma).payload?.issues ?? []
+
       expect(issues.length).toBeGreaterThan(0)
       expect(
         issues.every(
@@ -218,15 +220,22 @@ describe('Eidos', () => {
         schema: successSchema({ id: 'u1', age: 30 }),
       })
 
-      type Result = Expect<Equal<Eidos.Infer<typeof eidos>, { id: string; age: number }>>
+      type Result = Expect<
+        Equal<Eidos.Infer<typeof eidos>, { id: string; age: number }>
+      >
       true satisfies Result
     })
 
     test('extracts the transformed output type when schema transforms', () => {
-      const timestampSchema = z.string().datetime().transform((s) => new Date(s))
+      const timestampSchema = z
+        .string()
+        .datetime()
+        .transform((s) => new Date(s))
+
       const eidos = Eidos.define({ name: 'Timestamp', schema: timestampSchema })
 
       type Result = Expect<Equal<Eidos.Infer<typeof eidos>, Date>>
+
       true satisfies Result
     })
   })
@@ -239,15 +248,21 @@ describe('Eidos', () => {
       })
 
       type Result = Expect<Equal<Eidos.InferInput<typeof eidos>, unknown>>
+
       true satisfies Result
     })
 
     test('extracts the raw input type when schema transforms (differs from output)', () => {
-      const timestampSchema = z.string().datetime().transform((s) => new Date(s))
+      const timestampSchema = z
+        .string()
+        .datetime()
+        .transform((s) => new Date(s))
+
       const eidos = Eidos.define({ name: 'Timestamp', schema: timestampSchema })
 
-      type InputResult  = Expect<Equal<Eidos.InferInput<typeof eidos>, string>>
+      type InputResult = Expect<Equal<Eidos.InferInput<typeof eidos>, string>>
       type OutputResult = Expect<Equal<Eidos.Infer<typeof eidos>, Date>>
+
       true satisfies InputResult
       true satisfies OutputResult
     })
@@ -258,6 +273,7 @@ describe('Eidos', () => {
       const eidos = Eidos.define({ name: 'User', schema: successSchema(null) })
 
       type Result = Expect<Equal<Eidos.InferName<typeof eidos>, 'User'>>
+
       true satisfies Result
     })
 
@@ -266,6 +282,7 @@ describe('Eidos', () => {
       const eidos = Eidos.define({ name: sym, schema: successSchema(null) })
 
       type Result = Expect<Equal<Eidos.InferName<typeof eidos>, typeof sym>>
+
       true satisfies Result
     })
   })
