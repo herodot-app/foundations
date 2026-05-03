@@ -162,21 +162,21 @@ export namespace Agora {
    * one or more citizens to throw. Each entry is an `unknown` error — because
    * citizens can be unpredictable.
    */
-  export type KeryssoSkaion = Array<unknown>
+  export type KeryssoRight = Array<unknown>
 
   /**
    * The {@link Zygon} result type for a single {@link Agora.kerysso} call.
    * It succeeds (`dexion`) when all citizens behave, and fails (`skaion`) when
    * at least one of them throws a tantrum.
    */
-  export type KeryssoZygon = Zygon<true, KeryssoSkaion>
+  export type KeryssoZygon = Zygon<true, KeryssoRight>
 
   /**
    * The {@link Zygon} result type for {@link Agora.diangelo}, which replays
    * all queued announcements at once. The failure payload is an array of
-   * {@link KeryssoSkaion} arrays — one per offending announcement.
+   * {@link KeryssoRight} arrays — one per offending announcement.
    */
-  export type DiangeloZygon = Zygon<true, Array<KeryssoSkaion>>
+  export type DiangeloZygon = Zygon<true, Array<KeryssoRight>>
 
   /**
    * @internal Resolves to an empty tuple when `T` is `undefined` (no payload
@@ -195,8 +195,8 @@ export namespace Agora {
    * because good heralds finish their rounds regardless of the reception.
    *
    * Returns a {@link KeryssoZygon}:
-   * - **`Zygon.dexion`** (success) when all citizens listened without incident.
-   * - **`Zygon.skaion`** (failure) carrying the collected errors when one or
+   * - **`Zygon.left`** (success) when all citizens listened without incident.
+   * - **`Zygon.right`** (failure) carrying the collected errors when one or
    *   more citizens threw.
    *
    * @param agora    - The agora to broadcast into.
@@ -207,7 +207,7 @@ export namespace Agora {
    * ```ts
    * const result = Agora.kerysso(townSquare, 'Socrates')
    *
-   * if (Zygon.isDexion(result)) {
+   * if (Zygon.isRight(result)) {
    *   // Every citizen greeted Socrates without incident
    * } else {
    *   // Someone had philosophical objections
@@ -219,21 +219,21 @@ export namespace Agora {
     ...payloads: GuessKeryssoPayload<T>
   ): KeryssoZygon {
     const payload = payloads[0] as T
-    const skaions = []
+    const errors = []
 
     for (const akouo of agora.citizens) {
       try {
         akouo(payload)
       } catch (err: unknown) {
-        skaions.push(err)
+        errors.push(err)
       }
     }
 
-    if (skaions.length === 0) {
-      return Zygon.dexion(true) as KeryssoZygon
+    if (errors.length === 0) {
+      return Zygon.left(true) as KeryssoZygon
     }
 
-    return Zygon.skaion(skaions) as KeryssoZygon
+    return Zygon.right(errors) as KeryssoZygon
   }
 
   /**
@@ -283,10 +283,10 @@ export namespace Agora {
    * outcome — the heralds have done their duty and retire.
    *
    * Returns a {@link DiangeloZygon}:
-   * - **`Zygon.dexion`** when every citizen processed every queued payload
+   * - **`Zygon.left`** when every citizen processed every queued payload
    *   without complaint.
-   * - **`Zygon.skaion`** carrying a nested array of errors — one
-   *   {@link KeryssoSkaion} per announcement that produced failures — when
+   * - **`Zygon.right`** carrying a nested array of errors — one
+   *   {@link KeryssoRight} per announcement that produced failures — when
    *   things went sideways.
    *
    * @param agora - The agora whose queued announcements will be replayed.
@@ -296,14 +296,14 @@ export namespace Agora {
    * ```ts
    * const result = Agora.diangelo(townSquare)
    *
-   * if (Zygon.isDexion(result)) {
+   * if (Zygon.isRight(result)) {
    *   // All catch-up announcements delivered successfully
    * }
    * ```
    */
   export function diangelo<T>(
     agora: Agora<T>,
-  ): Zygon<true, Array<KeryssoSkaion>> {
+  ): Zygon<true, Array<KeryssoRight>> {
     const cache = []
 
     for (const kerysso of agora.keryssos) {
@@ -325,10 +325,10 @@ export namespace Agora {
     agora.keryssos.clear()
 
     if (cache.length === 0) {
-      return Zygon.dexion(true) as DiangeloZygon
+      return Zygon.left(true) as DiangeloZygon
     }
 
-    return Zygon.skaion(cache) as DiangeloZygon
+    return Zygon.right(cache) as DiangeloZygon
   }
 
   /**

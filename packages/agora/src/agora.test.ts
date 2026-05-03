@@ -169,8 +169,8 @@ describe('Agora', () => {
 
       const result = Agora.kerysso(agora, 42)
 
-      expect(Zygon.isDexion(result)).toBe(true)
-      expect(result.right).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(true)
     })
 
     test('returns a skaion when a citizen throws', () => {
@@ -183,8 +183,8 @@ describe('Agora', () => {
 
       const result = Agora.kerysso(agora, 42)
 
-      expect(Zygon.isSkaion(result)).toBe(true)
-      expect(result.left).toEqual([err])
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toEqual([err])
     })
 
     test('continues calling remaining citizens after one throws', () => {
@@ -206,8 +206,8 @@ describe('Agora', () => {
 
       const result = Agora.kerysso(agora)
 
-      expect(Zygon.isDexion(result)).toBe(true)
-      expect(result.right).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(true)
     })
 
     test('works without a payload (undefined default)', () => {
@@ -323,8 +323,8 @@ describe('Agora', () => {
 
       const result = Agora.diangelo(agora)
 
-      expect(Zygon.isDexion(result)).toBe(true)
-      expect(result.right).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(true)
     })
 
     test('returns a skaion when a citizen throws', () => {
@@ -337,8 +337,8 @@ describe('Agora', () => {
 
       const result = Agora.diangelo(agora)
 
-      expect(Zygon.isSkaion(result)).toBe(true)
-      expect(result.left).toEqual([[err]])
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toEqual([[err]])
     })
 
     test('returns a dexion for an empty queue', () => {
@@ -346,8 +346,8 @@ describe('Agora', () => {
 
       const result = Agora.diangelo(agora)
 
-      expect(Zygon.isDexion(result)).toBe(true)
-      expect(result.right).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(true)
     })
   })
 
