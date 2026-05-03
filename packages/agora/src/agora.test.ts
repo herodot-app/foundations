@@ -105,7 +105,11 @@ describe('Agora', () => {
     test('returns 0 citizens and 0 registry for an empty agora', () => {
       const agora = Agora.create()
 
-      expect(Agora.inspect(agora)).toEqual({ citizens: 0, registry: 0 })
+      expect(Agora.inspect(agora)).toEqual({
+        citizens: 0,
+        registry: 0,
+        frozen: false,
+      })
     })
 
     test('returns the number of registered citizens', () => {
@@ -146,7 +150,11 @@ describe('Agora', () => {
 
       Agora.clear(agora)
 
-      expect(Agora.inspect(agora)).toEqual({ citizens: 0, registry: 0 })
+      expect(Agora.inspect(agora)).toEqual({
+        citizens: 0,
+        registry: 0,
+        frozen: false,
+      })
     })
   })
 
@@ -425,6 +433,139 @@ describe('Agora', () => {
       Agora.clear(agora)
 
       expect(agora.registry.size).toBe(0)
+    })
+  })
+
+  describe('freeze', () => {
+    test('sets the frozen flag to true', () => {
+      const agora = Agora.create()
+
+      Agora.freeze(agora)
+
+      expect(Agora.inspect(agora).frozen).toBe(true)
+    })
+
+    test('prevents publish and returns FrozenAgoraPtoma', () => {
+      const agora = Agora.create<string>()
+
+      Agora.listen(agora, () => {})
+      Agora.freeze(agora)
+
+      const result = Agora.publish(agora, 'hello')
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right instanceof Agora.FrozenAgoraPtoma).toBe(true)
+    })
+
+    test('prevents dispatch and returns FrozenAgoraPtoma', () => {
+      const agora = Agora.create<string>()
+
+      Agora.register(agora, 'queued')
+      Agora.freeze(agora)
+
+      const result = Agora.dispatch(agora)
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right instanceof Agora.FrozenAgoraPtoma).toBe(true)
+    })
+
+    test('preserves citizens and registry while frozen', () => {
+      const agora = Agora.create<string>()
+
+      Agora.listen(agora, () => {})
+      Agora.register(agora, 'msg')
+      Agora.freeze(agora)
+
+      expect(agora.citizens.size).toBe(1)
+      expect(agora.registry.size).toBe(1)
+    })
+  })
+
+  describe('unfreeze', () => {
+    test('sets the frozen flag to false', () => {
+      const agora = Agora.create()
+
+      Agora.freeze(agora)
+      Agora.unfreeze(agora)
+
+      expect(Agora.inspect(agora).frozen).toBe(false)
+    })
+
+    test('allows publish again after unfreezing', () => {
+      const agora = Agora.create<string>()
+      const received: string[] = []
+
+      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.freeze(agora)
+      Agora.unfreeze(agora)
+
+      const result = Agora.publish(agora, 'hello')
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(received).toEqual(['hello'])
+    })
+
+    test('allows dispatch again after unfreezing', () => {
+      const agora = Agora.create<string>()
+      const received: string[] = []
+
+      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.register(agora, 'queued')
+      Agora.freeze(agora)
+      Agora.unfreeze(agora)
+
+      const result = Agora.dispatch(agora)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(received).toEqual(['queued'])
+    })
+
+    test('unfreezing a non-frozen agora is safe', () => {
+      const agora = Agora.create()
+
+      Agora.unfreeze(agora)
+
+      expect(Agora.inspect(agora).frozen).toBe(false)
+    })
+  })
+
+  describe('FrozenAgoraPtoma', () => {
+    test('is an Error instance', () => {
+      const ptoma = new Agora.FrozenAgoraPtoma('test message')
+
+      expect(ptoma instanceof Error).toBe(true)
+    })
+
+    test('carries the provided message', () => {
+      const ptoma = new Agora.FrozenAgoraPtoma('custom error')
+
+      expect(ptoma.message).toBe('custom error')
+    })
+
+    test('has a name matching the ptoma type', () => {
+      const ptoma = new Agora.FrozenAgoraPtoma('test')
+
+      expect(ptoma.name).toBe('@herodot-app/agora/frozen-agora-ptoma')
+    })
+
+    test('is thrown by publish on frozen agora', () => {
+      const agora = Agora.create()
+
+      Agora.freeze(agora)
+
+      const result = Agora.publish(agora)
+
+      expect(result.right).toBeInstanceOf(Agora.FrozenAgoraPtoma)
+    })
+
+    test('is thrown by dispatch on frozen agora', () => {
+      const agora = Agora.create()
+
+      Agora.freeze(agora)
+
+      const result = Agora.dispatch(agora)
+
+      expect(result.right).toBeInstanceOf(Agora.FrozenAgoraPtoma)
     })
   })
 })

@@ -4,13 +4,19 @@ tasks:
     deps:
       - 'idion:build'
       - 'zygon:build'
+      - 'rheon:build'
+      - 'ptoma:build'
   lint:
     command: 'bun run lint'
     deps:
       - 'idion:build'
       - 'zygon:build'
+      - 'rheon:build'
+      - 'ptoma:build'
   build:
     command: 'bun run dist'
     deps:
       - 'idion:build'
       - 'zygon:build'
+      - 'rheon:build'
+      - 'ptoma:build'
