@@ -6,7 +6,7 @@
     "typescript",
     "library"
   ],
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "main": "./dist/rheon.cjs",
   "module": "./dist/rheon.js",

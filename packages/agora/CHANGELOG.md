@@ -1,5 +1,16 @@
 # @herodot-app/agora
 
+## 1.1.0
+
+### Minor Changes
+
+- 9dfd20e: Add `freeze`, `unfreeze`, and `FrozenAgoraPtoma` to pause and resume broadcasts
+
+### Patch Changes
+
+- Updated dependencies [547ece3]
+  - @herodot-app/rheon@0.3.0
+
 ## 1.0.0
 
 ### Major Changes

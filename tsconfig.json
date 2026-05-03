@@ -23,22 +23,25 @@
   },
   "references": [
     {
-      "path": "./packages/idion"
+      "path": "./packages/agora"
     },
     {
-      "path": "./packages/rheon"
+      "path": "./packages/eidos"
+    },
+    {
+      "path": "./packages/idion"
     },
     {
       "path": "./packages/ptoma"
     },
     {
+      "path": "./packages/rheon"
+    },
+    {
+      "path": "./packages/sema"
+    },
+    {
       "path": "./packages/zygon"
-    },
-    {
-      "path": "./packages/agora"
-    },
-    {
-      "path": "./packages/eidos"
     }
   ]
 }

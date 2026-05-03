@@ -6,7 +6,7 @@
     "typescript",
     "library"
   ],
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -51,10 +51,10 @@
     "minify": false
   },
   "dependencies": {
-    "@herodot-app/agora": "^1.0.0",
+    "@herodot-app/agora": "^1.1.0",
     "@herodot-app/idion": "^0.1.3",
     "@herodot-app/ptoma": "^0.2.1",
-    "@herodot-app/rheon": "^0.2.1",
+    "@herodot-app/rheon": "^0.3.0",
     "@herodot-app/zygon": "^1.0.0"
   }
 }

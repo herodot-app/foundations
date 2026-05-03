@@ -1,5 +1,13 @@
 # @herodot-app/rheon
 
+## 0.3.0
+
+### Minor Changes
+
+- 547ece3: Add `WriterOrValue<T>` type and writer function support to `Rheon.write`
+
+  The `write` function now accepts either a direct value or a writer function `(value: T) => T` for atomic updates. Added TSDoc for `WriterOrValue<T>`, updated tests, and refreshed README documentation.
+
 ## 0.2.1
 
 ### Patch Changes
