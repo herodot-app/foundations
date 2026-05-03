@@ -1,44 +1,44 @@
 import { Agora } from '@herodot-app/agora'
 import { Idion } from '@herodot-app/idion'
 import { Equality } from './equality'
-import { Signal } from './signal'
+import { Sema } from './sema'
 
 /**
- * A derived signal whose value is computed from a source `Signal<T>` via a
+ * A derived sema whose value is computed from a source `Sema<T>` via a
  * selector function `(T) => R`.
  *
- * A `Derivation<T, R>` is itself a `Signal<R>` — it can be read, observed, and
- * composed with other derivations exactly like any other signal. Its value is
+ * A `Derivation<T, R>` is itself a `Sema<R>` — it can be read, observed, and
+ * composed with other derivations exactly like any other sema. Its value is
  * kept in sync with the source: every time the source changes the selector is
  * re-evaluated and, if the result differs under the configured equality check,
  * the derivation's own listeners are notified.
  *
  * Call `Derivation.unbind` when the derivation is no longer needed to stop
- * listening to the source signal and prevent memory leaks.
+ * listening to the source sema and prevent memory leaks.
  *
- * @typeParam T - The value type of the source signal.
+ * @typeParam T - The value type of the source sema.
  * @typeParam R - The derived / projected value type.
  *
  * @example
- * const signal = Signal.create({ count: 0, name: 'Alice' })
- * const derived = Derivation.create({ signal, selector: s => s.count })
+ * const sema = Sema.create({ count: 0, name: 'Alice' })
+ * const derived = Derivation.create({ sema, selector: s => s.count })
  *
- * Signal.read(derived) // 0
+ * Sema.read(derived) // 0
  *
- * Signal.write(signal, { count: 1, name: 'Alice' })
+ * Sema.write(sema, { count: 1, name: 'Alice' })
  *
- * Signal.read(derived) // 1
+ * Sema.read(derived) // 1
  *
  * Derivation.unbind(derived)
  */
-export type Derivation<T, R> = Signal<R> &
+export type Derivation<T, R> = Sema<R> &
   Idion<
     Derivation.Identifier,
     {
       /**
-       * The projection function applied to the source signal's value.
+       * The projection function applied to the source sema's value.
        */
-      readonly selector: Signal.Selector<T, R>
+      readonly selector: Sema.Selector<T, R>
 
       /**
        * The equality predicate used to decide whether to propagate a change.
@@ -46,12 +46,12 @@ export type Derivation<T, R> = Signal<R> &
       readonly equality: Equality<R, R>
 
       /**
-       * The source signal this derivation is subscribed to.
+       * The source sema this derivation is subscribed to.
        */
-      readonly signal: Signal<T>
+      readonly sema: Sema<T>
 
       /**
-       * The dispose function that stops listening to the source signal.
+       * The dispose function that stops listening to the source sema.
        */
       readonly unbind: Agora.Unlistener
     }
@@ -80,14 +80,14 @@ export namespace Derivation {
    */
   export type Options<T, R> = {
     /**
-     * The source signal to derive from.
+     * The source sema to derive from.
      */
-    readonly signal: Signal<T>
+    readonly sema: Sema<T>
 
     /**
      * Projects the source value to the derived value.
      */
-    readonly selector: Signal.Selector<T, R>
+    readonly selector: Sema.Selector<T, R>
 
     /**
      * Custom equality used to suppress redundant downstream notifications.
@@ -97,56 +97,56 @@ export namespace Derivation {
   }
 
   /**
-   * Creates a `Derivation<T, R>` that tracks `options.signal` through
+   * Creates a `Derivation<T, R>` that tracks `options.sema` through
    * `options.selector`.
    *
-   * The derived signal is initialised with the selector's current result.
-   * From that point on, each write to the source signal triggers a
+   * The derived sema is initialised with the selector's current result.
+   * From that point on, each write to the source sema triggers a
    * re-evaluation; the derivation only propagates when the new selected value
    * differs from the current one under the configured equality.
    *
-   * The returned value is a `Signal<R>` augmented with derivation metadata
-   * (`selector`, `equality`, `signal`, `unbind`).
+   * The returned value is a `Sema<R>` augmented with derivation metadata
+   * (`selector`, `equality`, `sema`, `unbind`).
    *
-   * @typeParam T - The source signal's value type.
+   * @typeParam T - The source sema's value type.
    * @typeParam R - The derived value type.
-   * @param options - Configuration with `signal`, `selector`, and optional `equality`.
+   * @param options - Configuration with `sema`, `selector`, and optional `equality`.
    * @returns A `Derivation<T, R>` that stays in sync with the source.
    *
    * @example
    * ```ts
-   * const source = Signal.create({ x: 1, y: 2 })
-   * const xOnly = Derivation.create({ signal: source, selector: s => s.x })
-   * // xOnly is a Signal<number> seeded with 1
+   * const source = Sema.create({ x: 1, y: 2 })
+   * const xOnly = Derivation.create({ sema: source, selector: s => s.x })
+   * // xOnly is a Sema<number> seeded with 1
    * ```
    */
   export function create<T, R>(options: Options<T, R>): Derivation<T, R> {
     const selector = options.selector
     const equality = options.equality ?? Equality.check
-    const signal = options.signal
+    const sema = options.sema
 
-    const selectedValue = Signal.read(signal, selector)
+    const selectedValue = Sema.read(sema, selector)
 
-    const derivedSignal = Signal.create(selectedValue)
+    const derivedSema = Sema.create(selectedValue)
 
     // biome-ignore lint: we don't care about infering T here
-    const unbind = Agora.listen(signal, (value: any) => {
+    const unbind = Agora.listen(sema, (value: any) => {
       const newValue = selector(value)
-      const currentValue = Signal.read(derivedSignal)
+      const currentValue = Sema.read(derivedSema)
 
       if (equality(newValue, currentValue)) return
 
-      Signal.write(derivedSignal, newValue)
+      Sema.write(derivedSema, newValue)
     })
 
     return Idion.create({
       id: identifier,
-      value: Object.assign({}, derivedSignal, {
+      value: Object.assign({}, derivedSema, {
         selector,
         equality,
-        signal,
+        sema,
         unbind,
-        frozenRef: signal.frozenRef,
+        frozenRef: sema.frozenRef,
       }),
     })
   }
@@ -159,7 +159,7 @@ export namespace Derivation {
    * prevent listener accumulation on long-lived source signals.
    *
    * @example
-   * const derived = Derivation.create({ signal, selector: s => s.count })
+   * const derived = Derivation.create({ sema, selector: s => s.count })
    * // ... use derived ...
    * Derivation.unbind(derived)
    */
@@ -168,28 +168,28 @@ export namespace Derivation {
   }
 
   /**
-   * Type guard that returns `true` when `signal` is a {@link Derivation}.
+   * Type guard that returns `true` when `sema` is a {@link Derivation}.
    *
    * Delegates to {@link Idion.is} with the {@link identifier} so the check is
    * symbol-based and works across module boundaries.
    *
-   * @typeParam T - The source signal's value type (inferred on narrowing).
+   * @typeParam T - The source sema's value type (inferred on narrowing).
    * @typeParam R - The derived value type (inferred on narrowing).
-   * @param signal - Any signal to test.
-   * @returns `true` if `signal` is a `Derivation<T, R>`, narrowing the type
+   * @param sema - Any sema to test.
+   * @returns `true` if `sema` is a `Derivation<T, R>`, narrowing the type
    *   accordingly; `false` otherwise.
    *
    * @example
    * ```ts
-   * const derived = Derivation.create({ signal, selector: s => s.count })
+   * const derived = Derivation.create({ sema, selector: s => s.count })
    * Derivation.is(derived) // true
-   * Derivation.is(signal)  // false (source signal, not a derivation)
+   * Derivation.is(sema)    // false (source sema, not a derivation)
    * ```
    */
   export function is<T = unknown, R = unknown>(
-    signal: unknown,
-  ): signal is Derivation<T, R> {
+    sema: unknown,
+  ): sema is Derivation<T, R> {
     // biome-ignore lint: we have to cast it as object to respect the Idion.ts signature
-    return Idion.is(signal as {}, identifier)
+    return Idion.is(sema as {}, identifier)
   }
 }
