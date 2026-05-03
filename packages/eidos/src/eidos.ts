@@ -18,8 +18,8 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
  *   knows the shape the data must conform to
  *
  * Bring data into existence with {@link Eidos.genesis}, which validates input
- * against the schema and returns a {@link Zygon} — success on the right,
- * failure on the left. The Platonic Form judges; the Zygon carries the verdict.
+ * against the schema and returns a {@link Zygon} — success on the left,
+ * failure on the right. The Platonic Form judges; the Zygon carries the verdict.
  *
  * ```ts
  * import * as v from 'valibot'
@@ -187,7 +187,7 @@ export namespace Eidos {
    * The {@link Ptoma} (fallen value) produced when {@link genesis} rejects its input.
    *
    * When data fails to match the Eidos's Form, the schema returns issues.
-   * Those issues are wrapped into a `GenesisPtoma` and placed on the left
+   * Those issues are wrapped into a `GenesisPtoma` and placed on the right
    * side of the {@link Zygon} — a named, typed record of everything that was
    * wrong with the input, rather than a cryptic `ValidationError: invalid_type`.
    *
@@ -198,8 +198,8 @@ export namespace Eidos {
    * ```ts
    * const result = Eidos.genesis(UserEidos, { id: 123 }) // id should be a string
    *
-   * if (Zygon.isSkaion(result)) {
-   *   console.log(result.left.payload.issues)
+   * if (Zygon.isRight(result)) {
+   *   console.log(result.right.payload.issues)
    *   // [{ message: 'Expected string, received number', path: ['id'] }]
    * }
    * ```
@@ -219,9 +219,9 @@ export namespace Eidos {
    * Form, or falls short and is turned away at the door.
    *
    * Returns a {@link Zygon}:
-   * - **{@link Zygon.Dexion | Dexion}** (right/success) — the validated output
+   * - **{@link Zygon.Left | Left}** (left/success) — the validated output
    *   value `O`, ready to use.
-   * - **{@link Zygon.Skaion | Skaion}** (left/failure) — a {@link GenesisPtoma}
+   * - **{@link Zygon.Right | Right}** (right/failure) — a {@link GenesisPtoma}
    *   carrying the list of schema issues that prevented the value from existing.
    *
    * @typeParam N - The Eidos name.
@@ -230,16 +230,16 @@ export namespace Eidos {
    *
    * @param eidos - The Form to validate `input` against.
    * @param input - The raw, unverified data. Any `unknown` is welcome to try.
-   * @returns A `Zygon<O, GenesisPtoma>` — success on the right, issues on the left.
+   * @returns A `Zygon<O, GenesisPtoma>` — success on the left, issues on the right.
    *
    * @example
    * ```ts
    * const result = Eidos.genesis(EmailEidos, 'hello@example.com')
    *
-   * if (Zygon.isDexion(result)) {
-   *   sendWelcomeEmail(result.right) // ✅ typed as string (validated email)
+   * if (Zygon.isLeft(result)) {
+   *   sendWelcomeEmail(result.left) // ✅ typed as string (validated email)
    * } else {
-   *   console.error(result.left.payload.issues) // ❌ what went wrong
+   *   console.error(result.right.payload.issues) // ❌ what went wrong
    * }
    * ```
    */
@@ -252,19 +252,19 @@ export namespace Eidos {
     ) as StandardSchemaV1.Result<O>
 
     if (payload.issues) {
-      return Zygon.skaion(
+      return Zygon.right(
         new GenesisPtoma(genesisPtomaIdentifier, { issues: payload.issues }),
       ) as Zygon<O, GenesisPtoma>
     }
 
-    return Zygon.dexion(payload.value) as Zygon<O, GenesisPtoma>
+    return Zygon.left(payload.value) as Zygon<O, GenesisPtoma>
   }
 
   /**
    * Type guard — returns `true` when `value` is a {@link GenesisPtoma}.
    *
-   * Use this inside a `Zygon.isSkaion` branch when you want to distinguish a
-   * validation failure from any other error that might be lurking on the left
+   * Use this inside a `Zygon.isRight` branch when you want to distinguish a
+   * validation failure from any other error that might be lurking on the right
    * side of a {@link Zygon}. A fallen value should at least be identifiable.
    *
    * @param value - The value to inspect.

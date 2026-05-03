@@ -137,13 +137,13 @@ import { Zygon } from '@herodot-app/zygon'
 
 const result = Agora.kerysso(loginAgora, user)
 
-if (Zygon.isDexion(result)) {
+if (Zygon.isLeft(result)) {
   // Every citizen received the announcement without incident
 }
 
-if (Zygon.isSkaion(result)) {
-  // One or more citizens threw — result.left contains the collected errors
-  console.error('Some citizens had objections:', result.left)
+if (Zygon.isRight(result)) {
+  // One or more citizens threw — result.right contains the collected errors
+  console.error('Some citizens had objections:', result.right)
 }
 ```
 
@@ -179,17 +179,17 @@ Use `Agora.diangelo` to dispatch every herald waiting in the queue to every curr
 // All queued payloads are now delivered to all registered citizens
 const result = Agora.diangelo(loginAgora)
 
-if (Zygon.isDexion(result)) {
+if (Zygon.isLeft(result)) {
   // Every queued announcement was delivered cleanly
 }
 
-if (Zygon.isSkaion(result)) {
-  // result.left is an array of error arrays — one per announcement that caused failures
-  console.error('Some heralds had a rough day:', result.left)
+if (Zygon.isRight(result)) {
+  // result.right is an array of error arrays — one per announcement that caused failures
+  console.error('Some heralds had a rough day:', result.right)
 }
 ```
 
-Once the sweep completes, the queue is emptied regardless of outcome. The heralds have done their duty and retire. A subsequent `diangelo` on an empty queue is a no-op — and returns a `dexion`, because zero failures is still a success.
+Once the sweep completes, the queue is emptied regardless of outcome. The heralds have done their duty and retire. A subsequent `diangelo` on an empty queue is a no-op — and returns a `Zygon.left`, because zero failures is still a success.
 
 This pair of `katatasso` + `diangelo` is the mechanism for *catch-up delivery*: produce events before consumers exist, then replay them the moment listeners are ready.
 
@@ -202,7 +202,7 @@ Use `Agora.dialyo` to clear both the citizen registry and the keryssos queue in 
 Agora.dialyo(loginAgora)
 ```
 
-After `dialyo`, the agora is technically still alive but utterly empty. Future `kerysso` calls will visit zero citizens and return a `dexion` — because broadcasting to nobody is technically flawless. Future `katatasso` calls will queue normally. The agora is not destroyed, just vacated — like a city square after a very successful public holiday.
+After `dialyo`, the agora is technically still alive but utterly empty. Future `kerysso` calls will visit zero citizens and return a `Zygon.left` — because broadcasting to nobody is technically flawless. Future `katatasso` calls will queue normally. The agora is not destroyed, just vacated — like a city square after a very successful public holiday.
 
 ### Take a census with `plethos`
 
@@ -244,17 +244,17 @@ type SignalListener = Agora.Akouo
 
 The unsubscribe function returned by `Agora.akouo`. A parameterless `() => void` that removes its specific citizen from the agora when called.
 
-### `Agora.KeryssoSkaion`
+### `Agora.KeryssoRight`
 
 The failure payload for a single `kerysso` call — an `Array<unknown>` of errors thrown by citizens during that broadcast.
 
 ### `Agora.KeryssoZygon`
 
-The return type of `Agora.kerysso`. A `Zygon<true, KeryssoSkaion>` — either a `dexion` of `true` (everyone behaved) or a `skaion` carrying the collected errors.
+The return type of `Agora.kerysso`. A `Zygon<true, KeryssoRight>` — either a `Zygon.left` of `true` (everyone behaved) or a `Zygon.right` carrying the collected errors.
 
 ### `Agora.DiangeloZygon`
 
-The return type of `Agora.diangelo`. A `Zygon<true, Array<KeryssoSkaion>>` — either a `dexion` of `true` or a `skaion` carrying a nested array of errors, one `KeryssoSkaion` per announcement that triggered failures.
+The return type of `Agora.diangelo`. A `Zygon<true, Array<KeryssoRight>>` — either a `Zygon.left` of `true` or a `Zygon.right` carrying a nested array of errors, one `KeryssoRight` per announcement that triggered failures.
 
 ### `Agora.Plethos`
 

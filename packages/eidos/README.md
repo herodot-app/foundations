@@ -49,13 +49,13 @@ const UserEidos = Eidos.horismos({
 
 const result = Eidos.genesis(UserEidos, incoming)
 
-if (Zygon.isDexion(result)) {
-  // result.right is typed as { id: string; age: number } — validated, safe to use
+if (Zygon.isLeft(result)) {
+  // result.left is typed as { id: string; age: number } — validated, safe to use
 }
 
-if (Zygon.isSkaion(result)) {
-  // result.left is a GenesisPtoma with the full list of schema issues
-  console.error(result.left.payload.issues)
+if (Zygon.isRight(result)) {
+  // result.right is a GenesisPtoma with the full list of schema issues
+  console.error(result.right.payload.issues)
 }
 ```
 
@@ -129,13 +129,13 @@ import { Zygon } from '@herodot-app/zygon'
 const result = Eidos.genesis(UserEidos, { id: 'u1', age: 30 })
 //    ^? Zygon<{ id: string; age: number }, Eidos.GenesisPtoma>
 
-if (Zygon.isDexion(result)) {
-  const user = result.right  // typed as { id: string; age: number }
+if (Zygon.isLeft(result)) {
+  const user = result.left  // typed as { id: string; age: number }
   console.log(`Welcome, user ${user.id}`)
 }
 
-if (Zygon.isSkaion(result)) {
-  const failure = result.left  // Eidos.GenesisPtoma
+if (Zygon.isRight(result)) {
+  const failure = result.right  // Eidos.GenesisPtoma
   console.error('Validation failed:', failure.payload.issues)
   // [{ message: 'Expected string, received number', path: ['id'] }, ...]
 }
@@ -154,8 +154,8 @@ const TimestampEidos = Eidos.horismos({
 
 const result = Eidos.genesis(TimestampEidos, '2025-01-01T00:00:00Z')
 
-if (Zygon.isDexion(result)) {
-  result.right  // typed as Date — already transformed, ready to use
+if (Zygon.isLeft(result)) {
+  result.left  // typed as Date — already transformed, ready to use
 }
 ```
 
@@ -164,10 +164,10 @@ if (Zygon.isDexion(result)) {
 Use `Eidos.isPtoma` to distinguish a validation failure from any other error that might appear on the left side of a `Zygon`. Useful when you are composing results and need to know whether you are dealing with a bad input or a different category of problem entirely.
 
 ```ts
-if (Zygon.isSkaion(result)) {
-  if (Eidos.isPtoma(result.left)) {
-    // definitely a validation failure — safe to read result.left.payload.issues
-    return { status: 422, errors: result.left.payload.issues }
+if (Zygon.isRight(result)) {
+  if (Eidos.isPtoma(result.right)) {
+    // definitely a validation failure — safe to read result.right.payload.issues
+    return { status: 422, errors: result.right.payload.issues }
   }
   // something else went wrong
 }
@@ -241,16 +241,16 @@ Validates `input` against `eidos`'s schema and returns a `Zygon<O, GenesisPtoma>
 | `input` | The raw, unverified data. Any `unknown` is welcome to try its luck. |
 
 Returns:
-- `Zygon.Dexion<O>` — the validated (and possibly transformed) output value.
-- `Zygon.Skaion<GenesisPtoma>` — a `GenesisPtoma` carrying the list of schema issues.
+- `Zygon.Left<O>` — the validated (and possibly transformed) output value.
+- `Zygon.Right<GenesisPtoma>` — a `GenesisPtoma` carrying the list of schema issues.
 
 ### `Eidos.GenesisPtoma`
 
 The typed error produced when `genesis` rejects its input. A `Ptoma` with identifier `'@herodot-app/eidos/genesis-ptoma'` and a `payload.issues` of type `ReadonlyArray<StandardSchemaV1.Issue>` — the full list of everything the schema found objectionable about the input.
 
 ```ts
-if (Zygon.isSkaion(result)) {
-  console.log(result.left.payload.issues)
+if (Zygon.isRight(result)) {
+  console.log(result.right.payload.issues)
   // [{ message: 'Expected string, received number', path: ['id'] }]
 }
 ```
