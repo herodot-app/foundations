@@ -1,0 +1,22 @@
+tasks:
+  test:
+    command: 'bun test'
+    deps:
+      - 'idion:build'
+      - 'proma:build'
+      - 'agora:build'
+      - 'zygon:build'
+  lint:
+    command: 'bun run lint'
+    deps:
+      - 'idion:build'
+      - 'proma:build'
+      - 'agora:build'
+      - 'zygon:build'
+  build:
+    command: 'bun run dist'
+    deps:
+      - 'idion:build'
+      - 'proma:build'
+      - 'agora:build'
+      - 'zygon:build'
