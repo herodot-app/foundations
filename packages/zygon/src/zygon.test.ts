@@ -1,6 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import { Zygon } from './zygon'
 
+type Expect<T extends true> = T
+
+type Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false
+
 describe('Zygon', () => {
   describe('left', () => {
     test('creates a Zygon with a left value', () => {
@@ -211,6 +218,52 @@ describe('Zygon', () => {
       const result = await concat('foo', 'bar')
 
       expect(Zygon.unwrap(result, '')).toBe('foobar')
+    })
+  })
+
+  describe('InferLeft', () => {
+    test('extracts the left type from a Zygon', () => {
+      type Z = Zygon<number, Error>
+      type Result = Expect<Equal<Zygon.InferLeft<Z>, number>>
+
+      true satisfies Result
+    })
+
+    test('resolves to never for a Right-only Zygon', () => {
+      type Z = Zygon.Right<string>
+      type Result = Expect<Equal<Zygon.InferLeft<Z>, never>>
+
+      true satisfies Result
+    })
+
+    test('extracts the left type from a Left-only Zygon', () => {
+      type Z = Zygon.Left<boolean>
+      type Result = Expect<Equal<Zygon.InferLeft<Z>, boolean>>
+
+      true satisfies Result
+    })
+  })
+
+  describe('InferRight', () => {
+    test('extracts the right type from a Zygon', () => {
+      type Z = Zygon<number, Error>
+      type Result = Expect<Equal<Zygon.InferRight<Z>, Error>>
+
+      true satisfies Result
+    })
+
+    test('resolves to never for a Left-only Zygon', () => {
+      type Z = Zygon.Left<string>
+      type Result = Expect<Equal<Zygon.InferRight<Z>, never>>
+
+      true satisfies Result
+    })
+
+    test('extracts the right type from a Right-only Zygon', () => {
+      type Z = Zygon.Right<boolean>
+      type Result = Expect<Equal<Zygon.InferRight<Z>, boolean>>
+
+      true satisfies Result
     })
   })
 

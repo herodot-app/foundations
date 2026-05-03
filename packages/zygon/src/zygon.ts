@@ -85,6 +85,40 @@ export namespace Zygon {
   >
 
   /**
+   * Extracts the success (`L`) type from a {@link Zygon}.
+   *
+   * Resolves to the left-side type parameter when `Z` is a {@link Left}, or
+   * `never` when `Z` cannot carry a left value.
+   *
+   * @typeParam Z - A `Zygon` type to inspect.
+   *
+   * @example
+   * ```ts
+   * type Ok = Zygon.InferLeft<Zygon<number, Error>> // number
+   * ```
+   */
+  // biome-ignore lint: these types are intentionally any to allow for inference from the value passed to `left` and `right`.
+  export type InferLeft<Z extends Zygon<any, any>> =
+    Z extends Left<infer L> ? L : never
+
+  /**
+   * Extracts the failure (`R`) type from a {@link Zygon}.
+   *
+   * Resolves to the right-side type parameter when `Z` is a {@link Right}, or
+   * `never` when `Z` cannot carry a right value.
+   *
+   * @typeParam Z - A `Zygon` type to inspect.
+   *
+   * @example
+   * ```ts
+   * type Err = Zygon.InferRight<Zygon<number, Error>> // Error
+   * ```
+   */
+  // biome-ignore lint: these types are intentionally any to allow for inference from the value passed to `left` and `right`.
+  export type InferRight<Z extends Zygon<any, any>> =
+    Z extends Right<infer R> ? R : never
+
+  /**
    * Creates a {@link Left} — the success side of a {@link Zygon}.
    *
    * @typeParam T - The type of the success value.

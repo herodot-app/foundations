@@ -182,6 +182,27 @@ if (Zygon.isLeft(result)) {
 }
 ```
 
+### Extract type parameters statically
+
+Use `Zygon.InferLeft` and `Zygon.InferRight` to pull the left or right type out of a `Zygon` at the type level. These are purely compile-time utilities — no runtime cost:
+
+```ts
+type MyZygon = Zygon<number, Error>
+
+type OkType  = Zygon.InferLeft<MyZygon>   // number
+type ErrType = Zygon.InferRight<MyZygon>  // Error
+```
+
+They are particularly useful when you need to derive related types from a `Zygon`-returning function without repeating yourself:
+
+```ts
+type Result = Awaited<ReturnType<typeof fetchUser>>
+//   ^? Zygon<User, NotFoundError | DbError>
+
+type Success = Zygon.InferLeft<Result>   // User
+type Failure = Zygon.InferRight<Result>  // NotFoundError | DbError
+```
+
 ### Check for a Zygon at runtime
 
 Use `Zygon.is` when a value arrives from an external source and you need to confirm it is a genuine Zygon before touching it:
@@ -217,6 +238,22 @@ The success half of a `Zygon`. Carries the success value on `.left` and a `kind:
 ### `Zygon.Right<T>`
 
 The failure half of a `Zygon`. Carries the failure value on `.right` and a `kind: 'right'` discriminant. Branded with `Zygon.rightIdentifier`.
+
+### `Zygon.InferLeft<Z>`
+
+Extracts the success (`L`) type from a `Zygon`. Resolves to `never` when `Z` has no left side.
+
+```ts
+type Ok = Zygon.InferLeft<Zygon<number, Error>>  // number
+```
+
+### `Zygon.InferRight<Z>`
+
+Extracts the failure (`R`) type from a `Zygon`. Resolves to `never` when `Z` has no right side.
+
+```ts
+type Err = Zygon.InferRight<Zygon<number, Error>>  // Error
+```
 
 ### `Zygon.left(value)`
 
