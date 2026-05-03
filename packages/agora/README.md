@@ -43,18 +43,18 @@ import { Agora } from '@herodot-app/agora'
 export const loginAgora = Agora.create<User>()
 
 // In auth.ts — the producer has no idea who is listening.
-Agora.kerysso(loginAgora, user)
+Agora.publish(loginAgora, user)
 
 // In analytics.ts — the consumer has no idea where the event came from.
-Agora.akouo(loginAgora, (user) => analytics.track('login', user))
+Agora.listen(loginAgora, (user) => analytics.track('login', user))
 
 // In notifications.ts
-Agora.akouo(loginAgora, (user) => notifications.greet(user))
+Agora.listen(loginAgora, (user) => notifications.greet(user))
 ```
 
 The agora is the dependency, not the other modules. Add a consumer without touching the producer. Remove one without breaking the others. The type follows the channel — TypeScript knows exactly what payload each listener will receive.
 
-And if a listener throws? The herald keeps walking. The other citizens still get their announcement. Errors are collected and surfaced as a typed `Zygon` rather than silently swallowed or allowed to interrupt the broadcast.
+And if a listener throws? The broadcast keeps going. The other citizens still get their announcement. Errors are collected and surfaced as a typed `Zygon` rather than silently swallowed or allowed to interrupt the broadcast.
 
 ---
 
@@ -66,7 +66,7 @@ Use Agora when:
 - You are decoupling modules across feature boundaries and direct imports would create circular dependencies or uncomfortable knowledge.
 - You want robust error handling baked into your event bus — knowing which listeners failed without losing the rest of the broadcast.
 - You need deferred delivery: queue announcements before listeners exist, then replay them when the consumers are ready. Useful for initialisation sequences where order is awkward and nobody wants to coordinate it manually.
-- You want an easy teardown path — a single `dialyo` call that empties the square and leaves no listeners behind to cause memory leaks.
+- You want an easy teardown path — a single `clear` call that empties the square and leaves no listeners behind to cause memory leaks.
 
 ---
 
@@ -84,7 +84,7 @@ Agora depends on `@herodot-app/idion` for the branded identity layer and `@herod
 
 ### Create an agora
 
-Use `Agora.create` to summon a new, empty public square. Supply a type parameter for the payload your heralds will carry. Omit it for a signal-only channel with no payload:
+Use `Agora.create` to summon a new, empty public square. Supply a type parameter for the payload your listeners will receive. Omit it for a signal-only channel with no payload:
 
 ```ts
 import { Agora } from '@herodot-app/agora'
@@ -100,42 +100,42 @@ const shutdownAgora = Agora.create()
 
 Each call produces an independent instance. Two agorae do not share citizens or queues — the city is large enough for everyone.
 
-### Subscribe a citizen with `akouo`
+### Subscribe a citizen with `listen`
 
-Use `Agora.akouo` to register a listener — a citizen who will be called every time a herald makes an announcement. The name comes from **ἀκούω**: "to hear". A citizen who does not listen is just a tourist.
+Use `Agora.listen` to register a listener — a citizen who will be called every time a payload is published.
 
 ```ts
-const apotasso = Agora.akouo(loginAgora, (user) => {
+const unlisten = Agora.listen(loginAgora, (user) => {
   console.log(`Welcome, ${user.name}!`)
 })
 ```
 
-`akouo` returns an **Apotasso** function — from **ἀποτάσσω**: "to take one's leave". Call it when the citizen has had enough and wishes to quietly exit before the next herald arrives:
+`listen` returns an **Unlistener** function. Call it when the citizen has had enough and wishes to quietly exit before the next announcement:
 
 ```ts
 // The citizen leaves. No hard feelings.
-apotasso()
+unlisten()
 ```
 
-Multiple citizens can register independently. Each gets their own `apotasso` and each unsubscribes only themselves:
+Multiple citizens can register independently. Each gets their own unlistener and each unsubscribes only themselves:
 
 ```ts
-const stop1 = Agora.akouo(loginAgora, analytics.track)
-const stop2 = Agora.akouo(loginAgora, notifications.greet)
-const stop3 = Agora.akouo(loginAgora, cache.warm)
+const stop1 = Agora.listen(loginAgora, analytics.track)
+const stop2 = Agora.listen(loginAgora, notifications.greet)
+const stop3 = Agora.listen(loginAgora, cache.warm)
 
 // Stop only analytics without disturbing the others
 stop1()
 ```
 
-### Broadcast with `kerysso`
+### Broadcast with `publish`
 
-Use `Agora.kerysso` to send a herald through the agora and deliver a payload to every registered citizen. The name comes from **κήρυξ**: "herald".
+Use `Agora.publish` to broadcast a payload to every registered citizen.
 
 ```ts
 import { Zygon } from '@herodot-app/zygon'
 
-const result = Agora.kerysso(loginAgora, user)
+const result = Agora.publish(loginAgora, user)
 
 if (Zygon.isLeft(result)) {
   // Every citizen received the announcement without incident
@@ -147,37 +147,37 @@ if (Zygon.isRight(result)) {
 }
 ```
 
-The herald visits each citizen exactly once. If a citizen throws, the herald notes the error, keeps walking, and visits the next citizen anyway. Good heralds finish their rounds regardless of the philosophical reception. All errors are collected and returned as a `KeryssoZygon`.
+The broadcast visits each citizen exactly once. If a citizen throws, the error is noted and the next citizen is visited anyway. All errors are collected and returned as a `PublishZygon`.
 
 For a signal-only agora (`T` is `undefined`), the payload argument is optional:
 
 ```ts
-Agora.kerysso(shutdownAgora)         // no payload needed
-Agora.kerysso(shutdownAgora, undefined) // also fine, if you feel strongly about it
+Agora.publish(shutdownAgora)            // no payload needed
+Agora.publish(shutdownAgora, undefined) // also fine, if you feel strongly about it
 ```
 
-### Queue an announcement with `katatasso`
+### Queue an announcement with `register`
 
-Use `Agora.katatasso` to enqueue a payload for later delivery rather than broadcasting it immediately. The name comes from **κατατάσσω**: "to arrange, to register" — you are placing a herald in the waiting room, not sending them into the square yet.
+Use `Agora.register` to enqueue a payload for later delivery rather than broadcasting it immediately. You are placing a message in the waiting room, not sending it into the square yet.
 
 ```ts
 // Queue some announcements before any citizens have arrived
-Agora.katatasso(loginAgora, adminUser)
-Agora.katatasso(loginAgora, regularUser)
+Agora.register(loginAgora, adminUser)
+Agora.register(loginAgora, regularUser)
 
 // Citizens registered *after* the announcements were queued
-Agora.akouo(loginAgora, notifyWelcomeService)
+Agora.listen(loginAgora, notifyWelcomeService)
 ```
 
-Nothing is delivered yet. The heralds are waiting patiently.
+Nothing is delivered yet. The payloads are waiting patiently.
 
-### Replay queued announcements with `diangelo`
+### Replay queued announcements with `dispatch`
 
-Use `Agora.diangelo` to dispatch every herald waiting in the queue to every currently registered citizen. The name comes from **διαγγέλλω**: "to announce in all directions, to proclaim throughout".
+Use `Agora.dispatch` to deliver every payload in the registry to every currently registered citizen.
 
 ```ts
 // All queued payloads are now delivered to all registered citizens
-const result = Agora.diangelo(loginAgora)
+const result = Agora.dispatch(loginAgora)
 
 if (Zygon.isLeft(result)) {
   // Every queued announcement was delivered cleanly
@@ -189,29 +189,29 @@ if (Zygon.isRight(result)) {
 }
 ```
 
-Once the sweep completes, the queue is emptied regardless of outcome. The heralds have done their duty and retire. A subsequent `diangelo` on an empty queue is a no-op — and returns a `Zygon.left`, because zero failures is still a success.
+Once the sweep completes, the queue is emptied regardless of outcome. A subsequent `dispatch` on an empty queue is a no-op — and returns a `Zygon.left`, because zero failures is still a success.
 
-This pair of `katatasso` + `diangelo` is the mechanism for *catch-up delivery*: produce events before consumers exist, then replay them the moment listeners are ready.
+This pair of `register` + `dispatch` is the mechanism for *catch-up delivery*: produce events before consumers exist, then replay them the moment listeners are ready.
 
-### Dissolve the agora with `dialyo`
+### Clear the agora with `clear`
 
-Use `Agora.dialyo` to clear both the citizen registry and the keryssos queue in one decisive act. The name comes from **διαλύω**: "to dissolve, to disband".
+Use `Agora.clear` to remove all citizens and empty the registry queue in one act.
 
 ```ts
 // Clean up when a component or service is destroyed
-Agora.dialyo(loginAgora)
+Agora.clear(loginAgora)
 ```
 
-After `dialyo`, the agora is technically still alive but utterly empty. Future `kerysso` calls will visit zero citizens and return a `Zygon.left` — because broadcasting to nobody is technically flawless. Future `katatasso` calls will queue normally. The agora is not destroyed, just vacated — like a city square after a very successful public holiday.
+After `clear`, the agora is technically still alive but utterly empty. Future `publish` calls will visit zero citizens and return a `Zygon.left` — because broadcasting to nobody is technically flawless. Future `register` calls will queue normally. The agora is not destroyed, just vacated — like a city square after a very successful public holiday.
 
-### Take a census with `plethos`
+### Inspect the agora with `inspect`
 
-Use `Agora.plethos` to inspect the current population of an agora. The name comes from **πλῆθος**: "multitude, crowd".
+Use `Agora.inspect` to get a snapshot of the agora's current state.
 
 ```ts
-const { citizens, keryssos } = Agora.plethos(loginAgora)
+const { citizens, registry } = Agora.inspect(loginAgora)
 
-console.log(`${citizens} citizens listening, ${keryssos} heralds in the queue`)
+console.log(`${citizens} citizens listening, ${registry} payloads queued`)
 ```
 
 Useful for debugging, observability dashboards, or satisfying curiosity about how busy your digital city-state has become.
@@ -228,42 +228,42 @@ The type of a typed pub/sub channel. Under the hood it is an `Idion` branded wit
 |-----------|-------------|
 | `T` | The payload type broadcast across the agora. Defaults to `undefined` for signal-only channels. |
 
-### `Agora.Akouo<T>`
+### `Agora.Listener<T>`
 
 The callback type for a subscribed citizen. When `T` is `undefined`, the payload argument is optional — the citizen listens even if the herald arrives with nothing to say. When `T` is a concrete type, the payload is required.
 
 ```ts
-type UserListener = Agora.Akouo<User>
+type UserListener = Agora.Listener<User>
 //   ^? (payload: User) => void
 
-type SignalListener = Agora.Akouo
+type SignalListener = Agora.Listener
 //   ^? (payload?: undefined) => void
 ```
 
-### `Agora.Apotasso`
+### `Agora.Unlistener`
 
-The unsubscribe function returned by `Agora.akouo`. A parameterless `() => void` that removes its specific citizen from the agora when called.
+The unsubscribe function returned by `Agora.listen`. A parameterless `() => void` that removes its specific citizen from the agora when called.
 
-### `Agora.KeryssoRight`
+### `Agora.PublishRight`
 
-The failure payload for a single `kerysso` call — an `Array<unknown>` of errors thrown by citizens during that broadcast.
+The failure payload for a single `publish` call — an `Array<unknown>` of errors thrown by citizens during that broadcast.
 
-### `Agora.KeryssoZygon`
+### `Agora.PublishZygon`
 
-The return type of `Agora.kerysso`. A `Zygon<true, KeryssoRight>` — either a `Zygon.left` of `true` (everyone behaved) or a `Zygon.right` carrying the collected errors.
+The return type of `Agora.publish`. A `Zygon<true, PublishRight>` — either a `Zygon.left` of `true` (everyone behaved) or a `Zygon.right` carrying the collected errors.
 
-### `Agora.DiangeloZygon`
+### `Agora.DispatchZygon`
 
-The return type of `Agora.diangelo`. A `Zygon<true, Array<KeryssoRight>>` — either a `Zygon.left` of `true` or a `Zygon.right` carrying a nested array of errors, one `KeryssoRight` per announcement that triggered failures.
+The return type of `Agora.dispatch`. A `Zygon<true, Array<PublishRight>>` — either a `Zygon.left` of `true` or a `Zygon.right` carrying a nested array of errors, one `PublishRight` per announcement that triggered failures.
 
-### `Agora.Plethos`
+### `Agora.Snapshot`
 
 A census snapshot of an agora.
 
 | Property | Description |
 |----------|-------------|
 | `citizens` | Number of currently registered listeners. |
-| `keryssos` | Number of payloads waiting in the queue for `diangelo`. |
+| `registry` | Number of payloads waiting in the queue for `dispatch`. |
 
 ### `Agora.create<T>()`
 
@@ -274,56 +274,56 @@ const agora = Agora.create<string>()
 //    ^? Agora<string>
 ```
 
-### `Agora.akouo(agora, listener)`
+### `Agora.listen(agora, listener)`
 
-Registers `listener` as a citizen of `agora`. Returns an `Apotasso` unsubscribe function.
+Registers `listener` as a citizen of `agora`. Returns an `Unlistener` function.
 
 | Parameter | Description |
 |-----------|-------------|
 | `agora` | The agora to subscribe to. |
-| `listener` | The `Akouo<T>` callback to call on each announcement. |
+| `listener` | The `Listener<T>` callback to call on each announcement. |
 
-### `Agora.kerysso(agora, payload?)`
+### `Agora.publish(agora, payload?)`
 
-Broadcasts `payload` to all currently registered citizens. Returns a `KeryssoZygon`. The payload argument is required when `T` is a concrete type and optional when `T` is `undefined`.
+Broadcasts `payload` to all currently registered citizens. Returns a `PublishZygon`. The payload argument is required when `T` is a concrete type and optional when `T` is `undefined`.
 
 | Parameter | Description |
 |-----------|-------------|
 | `agora` | The agora to broadcast into. |
 | `payload` | The value to deliver to each citizen (omit when `T` is `undefined`). |
 
-### `Agora.katatasso(agora, payload?)`
+### `Agora.register(agora, payload?)`
 
-Enqueues `payload` into the agora's keryssos buffer without delivering it immediately. Returns `void`. The payload is held until `Agora.diangelo` is called.
+Enqueues `payload` into the agora's registry without delivering it immediately. Returns `void`. The payload is held until `Agora.dispatch` is called.
 
 | Parameter | Description |
 |-----------|-------------|
 | `agora` | The agora whose queue receives the payload. |
 | `payload` | The value to enqueue (omit when `T` is `undefined`). |
 
-### `Agora.diangelo(agora)`
+### `Agora.dispatch(agora)`
 
-Replays every payload in the keryssos queue to every currently registered citizen, then clears the queue. Returns a `DiangeloZygon`. Always empties the queue, regardless of whether any citizens threw.
+Replays every payload in the registry to every currently registered citizen, then clears the queue. Returns a `DispatchZygon`. Always empties the queue, regardless of whether any citizens threw.
 
 | Parameter | Description |
 |-----------|-------------|
 | `agora` | The agora whose queue will be replayed. |
 
-### `Agora.dialyo(agora)`
+### `Agora.clear(agora)`
 
-Clears both the citizen registry and the keryssos queue. The agora remains usable — it is vacated, not destroyed. Returns `void`.
-
-| Parameter | Description |
-|-----------|-------------|
-| `agora` | The agora to dissolve. |
-
-### `Agora.plethos(agora)`
-
-Returns a `Plethos` census of the agora's current state: how many citizens are registered and how many payloads are queued.
+Clears both the citizen registry and the payload queue. The agora remains usable — it is vacated, not destroyed. Returns `void`.
 
 | Parameter | Description |
 |-----------|-------------|
-| `agora` | The agora to census. |
+| `agora` | The agora to clear. |
+
+### `Agora.inspect(agora)`
+
+Returns a `Snapshot` of the agora's current state: how many citizens are registered and how many payloads are queued.
+
+| Parameter | Description |
+|-----------|-------------|
+| `agora` | The agora to inspect. |
 
 ### `Agora.is<T>(value)`
 
@@ -336,7 +336,7 @@ if (Agora.is(maybeAgora)) {
 
 // Narrow to a specific payload type
 if (Agora.is<string>(maybeAgora)) {
-  Agora.kerysso(maybeAgora, 'hello')
+  Agora.publish(maybeAgora, 'hello')
 }
 ```
 
