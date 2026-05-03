@@ -3,20 +3,23 @@ tasks:
     command: 'bun test'
     deps:
       - 'idion:build'
-      - 'proma:build'
+      - 'ptoma:build'
       - 'agora:build'
       - 'zygon:build'
+      - 'rheon:build'
   lint:
     command: 'bun run lint'
     deps:
       - 'idion:build'
-      - 'proma:build'
+      - 'ptoma:build'
       - 'agora:build'
       - 'zygon:build'
+      - 'rheon:build'
   build:
     command: 'bun run dist'
     deps:
       - 'idion:build'
-      - 'proma:build'
+      - 'ptoma:build'
       - 'agora:build'
       - 'zygon:build'
+      - 'rheon:build'
