@@ -1,4 +1,6 @@
 import { Idion } from '@herodot-app/idion'
+import { Ptoma } from '@herodot-app/ptoma'
+import { Rheon } from '@herodot-app/rheon'
 import { Zygon } from '@herodot-app/zygon'
 
 /**
@@ -26,6 +28,7 @@ export type Agora<T = undefined> = Idion<
   {
     readonly registry: Set<T>
     readonly citizens: Set<Agora.Listener<T>>
+    readonly frozenRef: Rheon<boolean>
   }
 >
 
@@ -111,6 +114,7 @@ export namespace Agora {
       value: {
         registry: new Set(),
         citizens: new Set(),
+        frozenRef: Rheon.create(false),
       },
     })
   }
@@ -149,6 +153,17 @@ export namespace Agora {
   }
 
   /**
+   * A {@link Ptoma} error thrown when attempting to publish or dispatch on a
+   * frozen agora.
+   *
+   * An agora must be unfrozen via {@link Agora.unfreeze} before any
+   * announcements can be broadcast or queued payloads dispatched.
+   */
+  export class FrozenAgoraPtoma extends Ptoma.create(
+    '@herodot-app/agora/frozen-agora-ptoma',
+  ) {}
+
+  /**
    * The raw array of errors collected when a herald's announcement causes
    * one or more citizens to throw. Each entry is an `unknown` error — because
    * citizens can be unpredictable.
@@ -160,14 +175,17 @@ export namespace Agora {
    * It succeeds (left) when all citizens behave, and fails (right) when at
    * least one of them throws a tantrum.
    */
-  export type PublishZygon = Zygon<true, PublishRight>
+  export type PublishZygon = Zygon<true, PublishRight | FrozenAgoraPtoma>
 
   /**
    * The {@link Zygon} result type for {@link Agora.dispatch}, which replays
    * all queued announcements at once. The failure payload is an array of
    * {@link PublishRight} arrays — one per offending announcement.
    */
-  export type DispatchZygon = Zygon<true, Array<PublishRight>>
+  export type DispatchZygon = Zygon<
+    true,
+    Array<PublishRight> | FrozenAgoraPtoma
+  >
 
   /**
    * @internal Resolves to an empty tuple when `T` is `undefined` (no payload
@@ -208,6 +226,14 @@ export namespace Agora {
     agora: Agora<T>,
     ...payloads: GuessPublishPayload<T>
   ): PublishZygon {
+    if (Rheon.read(agora.frozenRef)) {
+      return Zygon.right(
+        new FrozenAgoraPtoma(
+          'unable to publish a frozen agora. You must unfreeze your agore before calling Agora.publish',
+        ),
+      ) as PublishZygon
+    }
+
     const payload = payloads[0] as T
     const errors = []
 
@@ -287,9 +313,15 @@ export namespace Agora {
    * }
    * ```
    */
-  export function dispatch<T>(
-    agora: Agora<T>,
-  ): Zygon<true, Array<PublishRight>> {
+  export function dispatch<T>(agora: Agora<T>): DispatchZygon {
+    if (Rheon.read(agora.frozenRef)) {
+      return Zygon.right(
+        new FrozenAgoraPtoma(
+          'unable to dispatch a frozen agora. You must unfreeze your agore before using Agora.dispatch',
+        ),
+      ) as DispatchZygon
+    }
+
     const cache = []
 
     for (const payload of agora.registry) {
@@ -347,6 +379,7 @@ export namespace Agora {
   export type Snapshot = {
     citizens: number
     registry: number
+    frozen: boolean
   }
 
   /**
@@ -369,7 +402,51 @@ export namespace Agora {
     return {
       citizens: agora.citizens.size,
       registry: agora.registry.size,
+      frozen: Rheon.read(agora.frozenRef),
     }
+  }
+
+  /**
+   * Freezes an agora, preventing any new announcements from being published
+   * or dispatched.
+   *
+   * While frozen, calls to {@link Agora.publish} and {@link Agora.dispatch}
+   * will immediately return a {@link FrozenAgoraPtoma} error. Existing citizens
+   * and queued payloads remain intact and will resume operating normally once
+   * the agora is unfrozen.
+   *
+   * @param agora - The agora to freeze.
+   *
+   * @example
+   * ```ts
+   * Agora.freeze(townSquare)
+   *
+   * Agora.publish(townSquare, 'hello') // returns FrozenAgoraPtoma
+   * ```
+   */
+  export function freeze<T>(agora: Agora<T>): void {
+    Rheon.write(agora.frozenRef, true)
+  }
+
+  /**
+   * Unfreezes an agora, allowing announcements to be published and dispatched
+   * again.
+   *
+   * After unfreezing, queued payloads registered while the agora was frozen
+   * can be dispatched normally, and new citizens can receive announcements.
+   *
+   * @param agora - The agora to unfreeze.
+   *
+   * @example
+   * ```ts
+   * Agora.freeze(townSquare)
+   * // ... some time later ...
+   * Agora.unfreeze(townSquare)
+   * Agora.publish(townSquare, 'the square is open again')
+   * ```
+   */
+  export function unfreeze<T>(agora: Agora<T>): void {
+    Rheon.write(agora.frozenRef, false)
   }
 
   /**

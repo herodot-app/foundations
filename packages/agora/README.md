@@ -67,6 +67,7 @@ Use Agora when:
 - You want robust error handling baked into your event bus — knowing which listeners failed without losing the rest of the broadcast.
 - You need deferred delivery: queue announcements before listeners exist, then replay them when the consumers are ready. Useful for initialisation sequences where order is awkward and nobody wants to coordinate it manually.
 - You want an easy teardown path — a single `clear` call that empties the square and leaves no listeners behind to cause memory leaks.
+- You need to temporarily pause broadcasts during reconfiguration or teardown — `freeze` blocks announcements without losing state, and `unfreeze` restores normal operation.
 
 ---
 
@@ -209,12 +210,41 @@ After `clear`, the agora is technically still alive but utterly empty. Future `p
 Use `Agora.inspect` to get a snapshot of the agora's current state.
 
 ```ts
-const { citizens, registry } = Agora.inspect(loginAgora)
+const { citizens, registry, frozen } = Agora.inspect(loginAgora)
 
-console.log(`${citizens} citizens listening, ${registry} payloads queued`)
+console.log(`${citizens} citizens listening, ${registry} payloads queued, frozen: ${frozen}`)
 ```
 
 Useful for debugging, observability dashboards, or satisfying curiosity about how busy your digital city-state has become.
+
+### Freeze the agora with `freeze`
+
+Use `Agora.freeze` to temporarily block all announcements. While frozen, calls to `publish` and `dispatch` immediately return a `FrozenAgoraPtoma` error without notifying any citizens.
+
+```ts
+Agora.freeze(loginAgora)
+
+Agora.publish(loginAgora, user) // returns FrozenAgoraPtoma — no citizens are notified
+```
+
+This is useful when you need to pause the agora during teardown, reconfiguration, or any period where announcements should be suppressed without losing the registered citizens or queued payloads.
+
+### Unfreeze the agora with `unfreeze`
+
+Use `Agora.unfreeze` to reopen the agora after it has been frozen. Citizens will resume receiving announcements normally.
+
+```ts
+Agora.freeze(loginAgora)
+
+// ... some work happens while the square is closed ...
+
+Agora.unfreeze(loginAgora)
+
+// Citizens are back in business
+Agora.publish(loginAgora, user) // delivered normally
+```
+
+Queued payloads registered while frozen are preserved and can be dispatched once the agora is unfrozen. Calling `unfreeze` on an already-unfrozen agora is safe and has no effect.
 
 ---
 
@@ -264,6 +294,7 @@ A census snapshot of an agora.
 |----------|-------------|
 | `citizens` | Number of currently registered listeners. |
 | `registry` | Number of payloads waiting in the queue for `dispatch`. |
+| `frozen` | Whether the agora is currently frozen — `true` means `publish` and `dispatch` are blocked. |
 
 ### `Agora.create<T>()`
 
@@ -319,11 +350,39 @@ Clears both the citizen registry and the payload queue. The agora remains usable
 
 ### `Agora.inspect(agora)`
 
-Returns a `Snapshot` of the agora's current state: how many citizens are registered and how many payloads are queued.
+Returns a `Snapshot` of the agora's current state: how many citizens are registered, how many payloads are queued, and whether the agora is frozen.
 
 | Parameter | Description |
 |-----------|-------------|
 | `agora` | The agora to inspect. |
+
+### `Agora.freeze(agora)`
+
+Freezes an agora, preventing any new announcements from being published or dispatched. Returns `void`.
+
+| Parameter | Description |
+|-----------|-------------|
+| `agora` | The agora to freeze. |
+
+### `Agora.unfreeze(agora)`
+
+Unfreezes a frozen agora, allowing announcements to resume normally. Returns `void`.
+
+| Parameter | Description |
+|-----------|-------------|
+| `agora` | The agora to unfreeze. |
+
+### `Agora.FrozenAgoraPtoma`
+
+A `Ptoma` error thrown when attempting to `publish` or `dispatch` on a frozen agora. Extends `Error` and carries the name `@herodot-app/agora/frozen-agora-ptoma`.
+
+```ts
+const result = Agora.publish(frozenAgora, user)
+
+if (result.right instanceof Agora.FrozenAgoraPtoma) {
+  console.error('Cannot publish — the agora is frozen')
+}
+```
 
 ### `Agora.is<T>(value)`
 
