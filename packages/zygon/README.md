@@ -46,9 +46,9 @@ import { Zygon } from '@herodot-app/zygon'
 
 async function fetchUser(id: string): Promise<Zygon<User, NotFoundError | DbError>> {
   try {
-    return Zygon.dexion(await db.find(id))        // success — lands on the right
+    return Zygon.left(await db.find(id))        // success — lands on the left
   } catch (err) {
-    return Zygon.skaion(toTypedError(err))         // failure — lands on the left
+    return Zygon.right(toTypedError(err))        // failure — lands on the right
   }
 }
 
@@ -56,14 +56,14 @@ async function fetchUser(id: string): Promise<Zygon<User, NotFoundError | DbErro
 // and the compiler will not let them ignore either one.
 const result = await fetchUser('abc-123')
 
-if (Zygon.isDexion(result)) {
-  console.log(result.right.name)      // ✅ User
+if (Zygon.isLeft(result)) {
+  console.log(result.left.name)      // ✅ User
 } else {
-  console.log(result.left.message)    // ✅ NotFoundError | DbError
+  console.log(result.right.message)  // ✅ NotFoundError | DbError
 }
 ```
 
-The two halves even have proper names. The success side is a **Dexion**, from the Greek *δεξιόν* meaning *right-handed* and *favourable* — historically the side of good omens. Fittingly, the success value lives on the `.right` property. The failure side is a **Skaion**, from the Greek *σκαιόν* meaning *left-handed*, *clumsy*, and *awkward* — the side of bad omens since antiquity, and also the origin of the Latin *sinister* (make of that what you will). The failure value lives on `.left`. The etymology and the data model have never been in more perfect, if slightly ominous, alignment.
+A `Zygon` is a tagged union with two sides: a **Left** (success), whose value lives on `.left`, and a **Right** (failure), whose value lives on `.right`. Think of it as `Either<L, R>` if you are fluent in Haskell, or `Result<L, R>` if you prefer Rust — just with more Greek mythology in the name.
 
 ---
 
@@ -92,41 +92,41 @@ Zygon depends on `@herodot-app/idion` for the branded identity layer underneath.
 
 ### Create a success value
 
-Use `Zygon.dexion` to wrap a successful result. The value ends up on `.right` — where good things belong:
+Use `Zygon.left` to wrap a successful result. The value ends up on `.left`:
 
 ```ts
 import { Zygon } from '@herodot-app/zygon'
 
-const result = Zygon.dexion(42)
+const result = Zygon.left(42)
 //    ^? Zygon<number, unknown>
 
-console.log(result.right)  // 42
-console.log(result.kind)   // 'right'
+console.log(result.left)  // 42
+console.log(result.kind)  // 'left'
 ```
 
 ### Create a failure value
 
-Use `Zygon.skaion` to wrap a failure. The value ends up on `.left` — where bad omens have always lived:
+Use `Zygon.right` to wrap a failure. The value ends up on `.right`:
 
 ```ts
-const result = Zygon.skaion(new Error('something went sideways'))
+const result = Zygon.right(new Error('something went sideways'))
 //    ^? Zygon<unknown, Error>
 
-console.log(result.left)   // Error: something went sideways
-console.log(result.kind)   // 'left'
+console.log(result.right)  // Error: something went sideways
+console.log(result.kind)   // 'right'
 ```
 
 ### Branch on the outcome
 
-Use `Zygon.isDexion` and `Zygon.isSkaion` to narrow the type and handle each path:
+Use `Zygon.isLeft` and `Zygon.isRight` to narrow the type and handle each path:
 
 ```ts
 function greet(result: Zygon<string, Error>): string {
-  if (Zygon.isDexion(result)) {
-    return `Hello, ${result.right}!`   // result.right is string
+  if (Zygon.isLeft(result)) {
+    return `Hello, ${result.left}!`   // result.left is string
   }
 
-  return `Error: ${result.left.message}`  // result.left is Error
+  return `Error: ${result.right.message}`  // result.right is Error
 }
 ```
 
@@ -134,25 +134,25 @@ Both type guards narrow the full `Zygon` union — TypeScript will know exactly 
 
 ### Unwrap with a fallback
 
-When you want the value without branching, use `Zygon.unwrapRight` (aliased as `Zygon.unwrap`) to extract the success value, or `Zygon.unwrapLeft` for the failure value. Both require a fallback in case the zygon turns out to be the other kind:
+When you want the value without branching, use `Zygon.unwrapLeft` (aliased as `Zygon.unwrap`) to extract the success value, or `Zygon.unwrapRight` for the failure value. Both require a fallback in case the zygon turns out to be the other kind:
 
 ```ts
-const ok = Zygon.dexion(7)
-const err = Zygon.skaion('oops')
+const ok  = Zygon.left(7)
+const err = Zygon.right('oops')
 
-Zygon.unwrapRight(ok, 0)   // → 7
-Zygon.unwrapRight(err, 0)  // → 0  (fallback — it was a Skaion)
+Zygon.unwrapLeft(ok, 0)   // → 7
+Zygon.unwrapLeft(err, 0)  // → 0  (fallback — it was a Right)
 
-Zygon.unwrapLeft(err, '')  // → 'oops'
-Zygon.unwrapLeft(ok, '')   // → ''  (fallback — it was a Dexion)
+Zygon.unwrapRight(err, '')  // → 'oops'
+Zygon.unwrapRight(ok, '')   // → ''  (fallback — it was a Left)
 
-// unwrap is an alias for unwrapRight, because success is the default expectation
-Zygon.unwrap(ok, 0)        // → 7
+// unwrap is an alias for unwrapLeft, because success is the default expectation
+Zygon.unwrap(ok, 0)  // → 7
 ```
 
 ### Wrap a synchronous function
 
-Use `Zygon.wrap` to turn any function that might throw into one that never does. Exceptions become `Skaion` values; successful returns become `Dexion` values:
+Use `Zygon.wrap` to turn any function that might throw into one that never does. Exceptions become `Right` values; successful returns become `Left` values:
 
 ```ts
 const safeParseJson = Zygon.wrap(JSON.parse, (e) => e as SyntaxError)
@@ -160,8 +160,8 @@ const safeParseJson = Zygon.wrap(JSON.parse, (e) => e as SyntaxError)
 
 const result = safeParseJson('{ not valid json }')
 
-if (Zygon.isSkaion(result)) {
-  console.error(result.left.message)  // ✅ SyntaxError, typed
+if (Zygon.isRight(result)) {
+  console.error(result.right.message)  // ✅ SyntaxError, typed
 }
 ```
 
@@ -169,7 +169,7 @@ The second argument is an optional error mapper. When omitted, the caught value 
 
 ### Wrap an async function
 
-Use `Zygon.asyncWrap` for the `async`/`await` world. Rejected promises become `Skaion` values instead of unhandled rejections waiting to ruin your weekend:
+Use `Zygon.asyncWrap` for the `async`/`await` world. Rejected promises become `Right` values instead of unhandled rejections waiting to ruin your weekend:
 
 ```ts
 const safeFetch = Zygon.asyncWrap(fetch, (e) => e as TypeError)
@@ -177,8 +177,8 @@ const safeFetch = Zygon.asyncWrap(fetch, (e) => e as TypeError)
 
 const result = await safeFetch('https://api.example.com/users')
 
-if (Zygon.isDexion(result)) {
-  const users = await result.right.json()  // ✅ Response, typed
+if (Zygon.isLeft(result)) {
+  const users = await result.left.json()  // ✅ Response, typed
 }
 ```
 
@@ -201,42 +201,42 @@ The check is symbol-based — it survives module boundaries, multiple bundler in
 
 ## API reference
 
-### `Zygon<D, S>`
+### `Zygon<L, R>`
 
-The type of a tagged union that is either a `Dexion<D>` (success) or a `Skaion<S>` (failure). Both sides are always present as possibilities in the type — the compiler will not let you pretend the failure path does not exist.
+The type of a tagged union that is either a `Left<L>` (success) or a `Right<R>` (failure). Both sides are always present as possibilities in the type — the compiler will not let you pretend the failure path does not exist.
 
 | Parameter | Description |
 |-----------|-------------|
-| `D` | The **D**exion (success / right) value type. |
-| `S` | The **S**kaion (failure / left) value type. Defaults to `unknown`. |
+| `L` | The **L**eft (success) value type. |
+| `R` | The **R**ight (failure) value type. Defaults to `unknown`. |
 
-### `Zygon.Dexion<T>`
+### `Zygon.Left<T>`
 
-The success half of a `Zygon`. Carries the success value on `.right` and a `kind: 'right'` discriminant. Branded with `Zygon.dexionIdentifier`.
+The success half of a `Zygon`. Carries the success value on `.left` and a `kind: 'left'` discriminant. Branded with `Zygon.leftIdentifier`.
 
-### `Zygon.Skaion<T>`
+### `Zygon.Right<T>`
 
-The failure half of a `Zygon`. Carries the failure value on `.left` and a `kind: 'left'` discriminant. Branded with `Zygon.skaionIdentifier`.
+The failure half of a `Zygon`. Carries the failure value on `.right` and a `kind: 'right'` discriminant. Branded with `Zygon.rightIdentifier`.
 
-### `Zygon.dexion(value)`
+### `Zygon.left(value)`
 
-Wraps `value` in a `Dexion` and returns a `Zygon<T, unknown>`. Call this when things go right — which is also literally where the value ends up.
+Wraps `value` in a `Left` and returns a `Zygon<T, unknown>`. Call this when things go well.
 
 ```ts
-Zygon.dexion(42)  // Zygon<number, unknown>
+Zygon.left(42)  // Zygon<number, unknown>
 ```
 
-### `Zygon.skaion(value)`
+### `Zygon.right(value)`
 
-Wraps `value` in a `Skaion` and returns a `Zygon<unknown, T>`. Call this when things go wrong — which is also literally where the value ends up.
+Wraps `value` in a `Right` and returns a `Zygon<unknown, T>`. Call this when things go wrong.
 
 ```ts
-Zygon.skaion(new Error('oops'))  // Zygon<unknown, Error>
+Zygon.right(new Error('oops'))  // Zygon<unknown, Error>
 ```
 
 ### `Zygon.is(value)`
 
-Type guard that returns `true` when `value` is a `Zygon`. Narrows to `Zygon<D, S>`, where both default to `unknown` if you do not provide type arguments.
+Type guard that returns `true` when `value` is a `Zygon`. Narrows to `Zygon<L, R>`, where both default to `unknown` if you do not provide type arguments.
 
 ```ts
 if (Zygon.is<number, Error>(value)) {
@@ -244,73 +244,73 @@ if (Zygon.is<number, Error>(value)) {
 }
 ```
 
-### `Zygon.isDexion(value)`
+### `Zygon.isLeft(value)`
 
-Type guard that returns `true` when `value` is a `Dexion` — the happy path. Narrows to `Dexion<D>`.
+Type guard that returns `true` when `value` is a `Left` — the happy path. Narrows to `Left<L>`.
 
 ```ts
-if (Zygon.isDexion(result)) {
-  result.right  // D
+if (Zygon.isLeft(result)) {
+  result.left  // L
 }
 ```
 
-### `Zygon.isSkaion(value)`
+### `Zygon.isRight(value)`
 
-Type guard that returns `true` when `value` is a `Skaion` — the sad path. Narrows to `Skaion<S>`.
+Type guard that returns `true` when `value` is a `Right` — the sad path. Narrows to `Right<R>`.
 
 ```ts
-if (Zygon.isSkaion(result)) {
-  result.left  // S
+if (Zygon.isRight(result)) {
+  result.right  // R
 }
 ```
 
-### `Zygon.unwrapRight(zygon, default)` / `Zygon.unwrap(zygon, default)`
+### `Zygon.unwrapLeft(zygon, default)` / `Zygon.unwrap(zygon, default)`
 
-Extracts the success value from `zygon`, or returns `default` if the zygon is a `Skaion`. `unwrap` is an alias for `unwrapRight` — because optimism deserves the shorter name.
+Extracts the success value from `zygon`, or returns `default` if the zygon is a `Right`. `unwrap` is an alias for `unwrapLeft` — because optimism deserves the shorter name.
 
 ```ts
-Zygon.unwrapRight(Zygon.dexion(7), 0)      // → 7
-Zygon.unwrapRight(Zygon.skaion('oops'), 0)  // → 0
+Zygon.unwrapLeft(Zygon.left(7), 0)      // → 7
+Zygon.unwrapLeft(Zygon.right('oops'), 0) // → 0
 ```
 
-### `Zygon.unwrapLeft(zygon, default)`
+### `Zygon.unwrapRight(zygon, default)`
 
-Extracts the failure value from `zygon`, or returns `default` if the zygon is a `Dexion`.
+Extracts the failure value from `zygon`, or returns `default` if the zygon is a `Left`.
 
 ```ts
-Zygon.unwrapLeft(Zygon.skaion('oops'), '')  // → 'oops'
-Zygon.unwrapLeft(Zygon.dexion(7), '')       // → ''
+Zygon.unwrapRight(Zygon.right('oops'), '')  // → 'oops'
+Zygon.unwrapRight(Zygon.left(7), '')        // → ''
 ```
 
 ### `Zygon.wrap(fn, wrapRight?)`
 
-Wraps a synchronous function so it never throws. Returns a new function with the same parameters as `fn`, but returning `Zygon<ReturnType<Fn>, S>` instead of throwing.
+Wraps a synchronous function so it never throws. Returns a new function with the same parameters as `fn`, but returning `Zygon<ReturnType<Fn>, R>` instead of throwing. Success lands in a `Left`; thrown errors land in a `Right`.
 
 | Parameter | Description |
 |-----------|-------------|
 | `fn` | The function to wrap. It may throw — that is the whole point. |
-| `wrapRight` | Optional mapper from the caught error to a typed `S`. When omitted the caught value is cast directly. |
+| `wrapRight` | Optional mapper from the caught error to a typed `R`. When omitted the caught value is cast directly. |
 
 ### `Zygon.asyncWrap(fn, wrapRight?)`
 
-The async sibling of `wrap`. Wraps an async function so that rejected promises become `Skaion` values instead of unhandled rejections. Returns a new async function returning `Promise<Zygon<Awaited<ReturnType<Fn>>, S>>`.
+The async sibling of `wrap`. Wraps an async function so that rejected promises become `Right` values instead of unhandled rejections. Returns a new async function returning `Promise<Zygon<Awaited<ReturnType<Fn>>, R>>`.
 
 | Parameter | Description |
 |-----------|-------------|
 | `fn` | The async function to wrap. It may reject — that is the whole point. |
-| `wrapRight` | Optional mapper from the rejection reason to a typed `S`. |
+| `wrapRight` | Optional mapper from the rejection reason to a typed `R`. |
 
 ### `Zygon.identifier`
 
 The well-known symbol (`Symbol.for('@herodot-app/zygon/zygon')`) that brands every `Zygon` instance. Consistent across module boundaries — one yoke, one symbol.
 
-### `Zygon.dexionIdentifier`
+### `Zygon.leftIdentifier`
 
-The well-known symbol (`Symbol.for('@herodot-app/zygon/dexion')`) that brands every `Dexion` instance.
+The well-known symbol (`Symbol.for('@herodot-app/zygon/left')`) that brands every `Left` instance.
 
-### `Zygon.skaionIdentifier`
+### `Zygon.rightIdentifier`
 
-The well-known symbol (`Symbol.for('@herodot-app/zygon/skaion')`) that brands every `Skaion` instance.
+The well-known symbol (`Symbol.for('@herodot-app/zygon/right')`) that brands every `Right` instance.
 
 ---
 
