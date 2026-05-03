@@ -90,7 +90,7 @@ describe('Eidos', () => {
       })
       const result = Eidos.genesis(eidos, { id: 1 })
 
-      expect(Zygon.isDexion(result)).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
     })
 
     test('the Dexion carries the validated output value', () => {
@@ -111,7 +111,7 @@ describe('Eidos', () => {
       })
       const result = Eidos.genesis(eidos, null)
 
-      expect(Zygon.isSkaion(result)).toBe(true)
+      expect(Zygon.isRight(result)).toBe(true)
     })
 
     test('the Skaion is a GenesisPtoma with the validation issues', () => {
@@ -122,7 +122,7 @@ describe('Eidos', () => {
       const eidos = Eidos.horismos({ name: 'Post', schema: failSchema(issues) })
       const result = Eidos.genesis(eidos, undefined)
 
-      const error = Zygon.unwrapLeft(result, null)
+      const error = Zygon.unwrapRight(result, null)
 
       expect(Ptoma.is(error, Eidos.genesisPtomaIdentifier)).toBe(true)
       expect((error as Eidos.GenesisPtoma).payload?.issues).toEqual(issues)
@@ -156,7 +156,7 @@ describe('Eidos', () => {
       const eidos = Eidos.horismos({ name: 'User', schema: userSchema })
       const result = Eidos.genesis(eidos, { id: 1, name: 'Alice' })
 
-      expect(Zygon.isDexion(result)).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
     })
 
     test('genesis unwraps to the parsed output', () => {
@@ -177,14 +177,14 @@ describe('Eidos', () => {
       const eidos = Eidos.horismos({ name: 'User', schema: userSchema })
       const result = Eidos.genesis(eidos, { id: 'not-a-number', name: 'Dave' })
 
-      expect(Zygon.isSkaion(result)).toBe(true)
+      expect(Zygon.isRight(result)).toBe(true)
     })
 
     test('genesis Skaion is a GenesisPtoma with Zod issues', () => {
       const eidos = Eidos.horismos({ name: 'User', schema: userSchema })
       const result = Eidos.genesis(eidos, { id: 'bad', name: 42 })
 
-      const error = Zygon.unwrapLeft(result, null)
+      const error = Zygon.unwrapRight(result, null)
 
       expect(Ptoma.is(error, Eidos.genesisPtomaIdentifier)).toBe(true)
       const issues = (error as Eidos.GenesisPtoma).payload?.issues ?? []
@@ -200,7 +200,7 @@ describe('Eidos', () => {
       const eidos = Eidos.horismos({ name: 'User', schema: userSchema })
       const result = Eidos.genesis(eidos, {})
 
-      expect(Zygon.isSkaion(result)).toBe(true)
+      expect(Zygon.isRight(result)).toBe(true)
     })
   })
 
