@@ -75,7 +75,7 @@ export namespace Derivation {
   /**
    * Configuration object passed to {@link Derivation.create}.
    *
-   * Contains the source signal, the projection function, and an optional
+   * Contains the source sema, the projection function, and an optional
    * equality predicate for controlling when changes propagate downstream.
    */
   export type Options<T, R> = {
@@ -152,19 +152,19 @@ export namespace Derivation {
   }
 
   /**
-   * Stops the derivation from listening to its source signal.
+   * Stops the derivation from listening to its source sema.
    *
    * After calling `unbind`, writes to the source will no longer update the
-   * derivation. Call this whenever the derived signal goes out of scope to
-   * prevent listener accumulation on long-lived source signals.
+   * derivation. Call this whenever the derived sema goes out of scope to
+   * prevent listener accumulation on long-lived source semas.
    *
    * @example
    * const derived = Derivation.create({ sema, selector: s => s.count })
    * // ... use derived ...
    * Derivation.unbind(derived)
    */
-  export function unbind<T, R>(derivedSignal: Derivation<T, R>): void {
-    derivedSignal.unbind()
+  export function unbind<T, R>(derivation: Derivation<T, R>): void {
+    derivation.unbind()
   }
 
   /**

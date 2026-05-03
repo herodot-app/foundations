@@ -9,28 +9,22 @@ import { Equality } from './equality'
  * The core reactive data structure of `sema`.
  *
  * A `Sema<T>` is an idion container that holds three value snapshots
- * (`initialValue`, `valueRef`, `oldValueRef`), a frozen flag, and the set
- * of active listeners. All reactive operations (reading, writing, observing)
- * are performed by the companion modules — `SemaQuery`, `SemaMutation`,
- * and `SemaObserver` — which accept a `Sema` as their first argument.
- *
- * Prefer creating semas through `SemaQuery` / `SemaMutation` pairs rather
- * than interacting with the raw refs directly.
+ * (`initialValue`, `valueRef`, `oldValueRef`), a frozen flag, and the
+ * pub/sub infrastructure inherited from {@link Agora} (citizens, registry).
+ * All reactive operations (reading, writing, observing) are performed
+ * through the `Sema` namespace functions.
  *
  * @example
  * const sema = Sema.create(0)
- * const query = SemaQuery.create(sema)
- * const mutation = SemaMutation.create(sema)
- *
- * mutation.write(1)
- * query.read() // 1
+ * Sema.write(sema, 1)
+ * Sema.read(sema) // 1
  */
 export type Sema<T> = Agora<T> &
   Idion<
     Sema.Identifier,
     {
       /**
-       * Snapshot of the value at creation time — used by `SemaMutation.reset`.
+       * Snapshot of the value at creation time — used by {@link Sema.reset}.
        */
       readonly initialValue: T
 
@@ -66,14 +60,14 @@ export namespace Sema {
   /**
    * Creates a new `Sema<T>` with `value` as both the initial and current value.
    *
-   * All three value refs (`initialValueRef`, `valueRef`, `oldValueRef`) start
-   * equal to `value`. The listeners set is empty and the sema is unfrozen.
+   * `initialValue`, `valueRef`, and `oldValueRef` all start equal to `value`.
+   * The citizens set and registry are empty and the sema is unfrozen.
    *
    * @example
    * const sema = Sema.create('hello')
    * // sema.valueRef holds 'hello'
    * // sema.frozenRef holds false
-   * // sema.listeners is empty
+   * // sema.citizens is empty
    */
   export function create<T>(value: T): Sema<T> {
     const initialValue = value
