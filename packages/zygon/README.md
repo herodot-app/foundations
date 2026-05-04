@@ -203,6 +203,38 @@ type Success = Zygon.InferLeft<Result>   // User
 type Failure = Zygon.InferRight<Result>  // NotFoundError | DbError
 ```
 
+### Lift nested Zygons
+
+When you compose functions that each return a `Zygon`, you can end up with nested ones — a `Zygon<Zygon<number, Error>, Error>` where the outer and inner layers both represent the same failure type. The lift utilities let you work with these as if they were flat.
+
+**Type level:** Use `Zygon.LiftLeft<T, D>` and `Zygon.LiftRight<T, D>` to compute the innermost value type, descending through nested `Left` or `Right` layers automatically:
+
+```ts
+type A = Zygon.LiftLeft<Zygon<Zygon<number, Error>, Error>>        // number
+type B = Zygon.LiftRight<Zygon<number, Zygon<number, string>>>    // string
+type C = Zygon.LiftLeft<string>                                     // string (no nesting)
+```
+
+Any `Right` encountered while lifting left resolves to `D` (defaults to `never`); any `Left` encountered while lifting right also resolves to `D`.
+
+**Value level:** Use `Zygon.unwrapLiftLeft` (aliased as `Zygon.unwrapLift`) and `Zygon.unwrapLiftRight` to recursively unwrap a possibly-nested zygon in one call:
+
+```ts
+const nested = Zygon.left(Zygon.left(42))
+Zygon.unwrapLiftLeft(nested, 0)  // → 42  (unwraps both Left layers)
+
+const mixed = Zygon.left(Zygon.right('oops'))
+Zygon.unwrapLiftLeft(mixed, 0)   // → 0   (Right found → fallback)
+
+const nestedRight = Zygon.right(Zygon.right('deep'))
+Zygon.unwrapLiftRight(nestedRight, null)  // → 'deep'
+
+const mixedRight = Zygon.right(Zygon.left(42))
+Zygon.unwrapLiftRight(mixedRight, null)   // → null  (Left found → fallback)
+```
+
+These are especially useful when you have chained operations that each return a `Zygon` and you want to flatten the result without manually checking each layer.
+
 ### Check for a Zygon at runtime
 
 Use `Zygon.is` when a value arrives from an external source and you need to confirm it is a genuine Zygon before touching it:
@@ -253,6 +285,26 @@ Extracts the failure (`R`) type from a `Zygon`. Resolves to `never` when `Z` has
 
 ```ts
 type Err = Zygon.InferRight<Zygon<number, Error>>  // Error
+```
+
+### `Zygon.LiftLeft<T, D>`
+
+Recursively extracts the innermost success value from a type, unwrapping nested `Left` layers until it reaches a bare value (or hits a `Right`). Any `Right` encountered resolves to `D` (defaults to `never`), and `unknown` also collapses to `D`.
+
+```ts
+type A = Zygon.LiftLeft<Zygon<Zygon<number, Error>, Error>>  // number
+type B = Zygon.LiftLeft<Zygon<number, Error>>                // number
+type C = Zygon.LiftLeft<string>                              // string
+```
+
+### `Zygon.LiftRight<T, D>`
+
+Recursively extracts the innermost failure value from a type, unwrapping nested `Right` layers until it reaches a bare value (or hits a `Left`). Any `Left` encountered resolves to `D` (defaults to `never`), and `unknown` also collapses to `D`.
+
+```ts
+type A = Zygon.LiftRight<Zygon<number, Zygon<number, string>>>  // string
+type B = Zygon.LiftRight<Zygon<number, Error>>                  // Error
+type C = Zygon.LiftRight<string>                                // string
 ```
 
 ### `Zygon.left(value)`
@@ -317,6 +369,30 @@ Extracts the failure value from `zygon`, or returns `default` if the zygon is a 
 ```ts
 Zygon.unwrapRight(Zygon.right('oops'), '')  // → 'oops'
 Zygon.unwrapRight(Zygon.left(7), '')        // → ''
+```
+
+### `Zygon.unwrapLiftLeft(zygon, default)` / `Zygon.unwrapLift(zygon, default)`
+
+Recursively unwraps a `Zygon` and lifts out the innermost success value, descending through any nested `Left` layers automatically. If a `Right` is encountered at any depth, returns `default` instead — because one failure poisons the whole chain. `unwrapLift` is an alias for `unwrapLiftLeft`.
+
+```ts
+const a = Zygon.left(Zygon.left(42))
+Zygon.unwrapLiftLeft(a, 0)  // → 42
+
+const b = Zygon.left(Zygon.right('oops'))
+Zygon.unwrapLiftLeft(b, 0)  // → 0
+```
+
+### `Zygon.unwrapLiftRight(zygon, default)`
+
+Recursively unwraps a `Zygon` and lifts out the innermost failure value, descending through any nested `Right` layers automatically. If a `Left` is encountered at any depth, returns `default` instead — because a success short-circuits the failure chain.
+
+```ts
+const a = Zygon.right(Zygon.right('oops'))
+Zygon.unwrapLiftRight(a, null)  // → 'oops'
+
+const b = Zygon.right(Zygon.left(42))
+Zygon.unwrapLiftRight(b, null)  // → null
 ```
 
 ### `Zygon.wrap(fn, wrapRight?)`

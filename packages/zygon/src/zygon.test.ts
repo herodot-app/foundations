@@ -295,4 +295,136 @@ describe('Zygon', () => {
       )
     })
   })
+
+  describe('LiftLeft type', () => {
+    test('resolves a plain type to itself', () => {
+      type Result = Expect<Equal<Zygon.LiftLeft<number>, number>>
+
+      true satisfies Result
+    })
+
+    test('unwraps a single level of nesting', () => {
+      type Z = Zygon<string, Error>
+      type Result = Expect<Equal<Zygon.LiftLeft<Z>, string>>
+
+      true satisfies Result
+    })
+
+    test('recursively unwraps multiple levels of nesting', () => {
+      type Z = Zygon<Zygon<Zygon<number, Error>, Error>, Error>
+      type Result = Expect<Equal<Zygon.LiftLeft<Z>, number>>
+
+      true satisfies Result
+    })
+
+    test('handles mixed nesting with different left types', () => {
+      type Z = Zygon<Zygon<{ id: string }, Error>, Error>
+      type Result = Expect<Equal<Zygon.LiftLeft<Z>, { id: string }>>
+
+      true satisfies Result
+    })
+  })
+
+  describe('LiftRight type', () => {
+    test('resolves a plain type to itself', () => {
+      type Result = Expect<Equal<Zygon.LiftRight<string>, string>>
+
+      true satisfies Result
+    })
+
+    test('unwraps a single level of nesting', () => {
+      type Z = Zygon<number, TypeError>
+      type Result = Expect<Equal<Zygon.LiftRight<Z>, TypeError>>
+
+      true satisfies Result
+    })
+
+    test('recursively unwraps multiple levels of nesting', () => {
+      type Z = Zygon<number, Zygon<number, Zygon<number, SyntaxError>>>
+      type Result = Expect<Equal<Zygon.LiftRight<Z>, SyntaxError>>
+
+      true satisfies Result
+    })
+  })
+
+  describe('unwrapLiftLeft / unwrapLift', () => {
+    test('unwraps a single left Zygon', () => {
+      const z = Zygon.left('hello')
+
+      expect(Zygon.unwrapLiftLeft(z, '')).toBe('hello')
+    })
+
+    test('unwraps two levels of nested left Zygons', () => {
+      const z = Zygon.left(Zygon.left(99))
+
+      expect(Zygon.unwrapLiftLeft(z, 0)).toBe(99)
+    })
+
+    test('unwraps three levels of nested left Zygons', () => {
+      const z = Zygon.left(Zygon.left(Zygon.left(42)))
+
+      expect(Zygon.unwrapLiftLeft(z, 0)).toBe(42)
+    })
+
+    test('returns default when outermost Zygon is a Right', () => {
+      const z = Zygon.right(new Error('outer'))
+
+      expect(Zygon.unwrapLiftLeft(z, 0)).toBe(0)
+    })
+
+    test('returns default when innermost Zygon is a Right', () => {
+      const z = Zygon.left(Zygon.right(new Error('inner')))
+
+      expect(Zygon.unwrapLiftLeft(z, 0)).toBe(0)
+    })
+
+    test('uses the correct default type for nested Zygons', () => {
+      const z = Zygon.left(Zygon.left(Zygon.left('deep')))
+
+      expect(Zygon.unwrapLiftLeft(z, 'fallback')).toBe('deep')
+    })
+
+    test('unwrapLift is an alias for unwrapLiftLeft', () => {
+      expect(Zygon.unwrapLift).toBe(Zygon.unwrapLiftLeft)
+    })
+  })
+
+  describe('unwrapLiftRight', () => {
+    test('unwraps a single right Zygon', () => {
+      const z = Zygon.right('error')
+      expect(Zygon.unwrapLiftRight(z, '')).toBe('error')
+    })
+
+    test('unwraps two levels of nested right Zygons', () => {
+      const z = Zygon.right(Zygon.right('deep error'))
+
+      expect(Zygon.unwrapLiftRight(z, '')).toBe('deep error')
+    })
+
+    test('unwraps three levels of nested right Zygons', () => {
+      const z = Zygon.right(Zygon.right(Zygon.right('triple error')))
+
+      expect(Zygon.unwrapLiftRight(z, '')).toBe('triple error')
+    })
+
+    test('returns default when outermost Zygon is a Left', () => {
+      const z = Zygon.left(42)
+      expect(Zygon.unwrapLiftRight(z, 'fallback')).toBe('fallback')
+    })
+
+    test('returns default when innermost Zygon is a Left', () => {
+      const z = Zygon.right(Zygon.left(99))
+
+      expect(Zygon.unwrapLiftRight(z, '')).toBe('')
+    })
+
+    test('uses the correct default type for nested Zygons', () => {
+      const z = Zygon.right(Zygon.right(new Error('nested')))
+
+      const result = Zygon.unwrapLiftRight(z, new Error('default'))
+
+      expect(result).toBeInstanceOf(Error)
+      expect(result.message).toBe('nested')
+    })
+  })
 })

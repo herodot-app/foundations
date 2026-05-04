@@ -356,4 +356,138 @@ export namespace Zygon {
       }
     }
   }
+
+  /**
+   * Recursively extracts the innermost success value from a type, unwrapping
+   * nested {@link Left} layers until it reaches a bare value (or hits a
+   * {@link Right}).
+   *
+   * Any {@link Right} encountered along the way resolves to `D` (defaults to
+   * `never`), and `unknown` also collapses to `D`.
+   *
+   * @typeParam T - The type to lift/unwrap.
+   * @typeParam D - Fallback type when a Right or `unknown` is encountered.
+   *
+   * @example
+   * ```ts
+   * type A = Zygon.LiftLeft<Zygon<Zygon<number, Error>, Error>> // number
+   * type B = Zygon.LiftLeft<Zygon<number, Error>>              // number
+   * type C = Zygon.LiftLeft<string>                            // string
+   * ```
+   */
+  export type LiftLeft<T, D = never> =
+    T extends Zygon.Left<infer L>
+      ? LiftLeft<L>
+      : // biome-ignore lint: could be any here
+        T extends Zygon.Right<any>
+        ? D
+        : unknown extends T
+          ? D
+          : T
+
+  /**
+   * Recursively extracts the innermost failure value from a type, unwrapping
+   * nested {@link Right} layers until it reaches a bare value (or hits a
+   * {@link Left}).
+   *
+   * Any {@link Left} encountered along the way resolves to `D` (defaults to
+   * `never`), and `unknown` also collapses to `D`.
+   *
+   * @typeParam T - The type to lift/unwrap.
+   * @typeParam D - Fallback type when a Left or `unknown` is encountered.
+   *
+   * @example
+   * ```ts
+   * type A = Zygon.LiftRight<Zygon<number, Zygon<number, string>>> // string
+   * type B = Zygon.LiftRight<Zygon<number, Error>>                 // Error
+   * type C = Zygon.LiftRight<string>                               // string
+   * ```
+   */
+  export type LiftRight<T, D = never> =
+    T extends Zygon.Right<infer R>
+      ? LiftRight<R>
+      : // biome-ignore lint: could be any here
+        T extends Zygon.Left<any>
+        ? D
+        : unknown extends T
+          ? D
+          : T
+
+  /**
+   * Unwraps a {@link Zygon} and recursively lifts out the innermost success
+   * value, descending through any nested {@link Left} layers automatically.
+   *
+   * If a {@link Right} is encountered at any depth, returns `defaultValue`
+   * instead — because one failure poisons the whole chain.
+   *
+   * @typeParam L - The success value type carried by the zygon.
+   * @typeParam R - The failure value type carried by the zygon.
+   * @typeParam D - The type of the fallback default value.
+   * @param zygon - The zygon (possibly nested) to unwrap.
+   * @param defaultValue - Value returned when a Right is found or the chain fails.
+   * @returns The innermost left value, or `defaultValue`.
+   *
+   * @example
+   * ```ts
+   * const a = Zygon.left(Zygon.left(42))
+   * Zygon.unwrapLiftLeft(a, 0) // → 42
+   *
+   * const b = Zygon.left(Zygon.right('oops'))
+   * Zygon.unwrapLiftLeft(b, 0) // → 0
+   * ```
+   */
+  export function unwrapLiftLeft<L, R, D>(
+    zygon: Zygon<L, R>,
+    defaultValue: D,
+  ): LiftLeft<L, D> {
+    const result = unwrapLeft(zygon, defaultValue as unknown as L)
+
+    if (Zygon.is<L, R>(result)) {
+      return unwrapLiftLeft(result, defaultValue)
+    }
+
+    return result as LiftLeft<L>
+  }
+
+  /**
+   * Alias for {@link unwrapLiftLeft} — because sometimes you just want to lift
+   * and unwrap without thinking about which side is which.
+   */
+  export const unwrapLift = unwrapLiftLeft
+
+  /**
+   * Unwraps a {@link Zygon} and recursively lifts out the innermost failure
+   * value, descending through any nested {@link Right} layers automatically.
+   *
+   * If a {@link Left} is encountered at any depth, returns `defaultValue`
+   * instead — because a success short-circuits the failure chain.
+   *
+   * @typeParam L - The success value type carried by the zygon.
+   * @typeParam R - The failure value type carried by the zygon.
+   * @typeParam D - The type of the fallback default value.
+   * @param zygon - The zygon (possibly nested) to unwrap.
+   * @param defaultValue - Value returned when a Left is found or the chain fails.
+   * @returns The innermost right value, or `defaultValue`.
+   *
+   * @example
+   * ```ts
+   * const a = Zygon.right(Zygon.right('oops'))
+   * Zygon.unwrapLiftRight(a, null) // → 'oops'
+   *
+   * const b = Zygon.right(Zygon.left(42))
+   * Zygon.unwrapLiftRight(b, null) // → null
+   * ```
+   */
+  export function unwrapLiftRight<L, R, D>(
+    zygon: Zygon<L, R>,
+    defaultValue: D,
+  ): LiftRight<R, D> {
+    const result = unwrapRight(zygon, defaultValue as unknown as R)
+
+    if (Zygon.is<L, R>(result)) {
+      return unwrapLiftRight(result, defaultValue)
+    }
+
+    return result as LiftRight<R>
+  }
 }
