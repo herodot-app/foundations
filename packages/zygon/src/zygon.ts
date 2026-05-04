@@ -377,7 +377,7 @@ export namespace Zygon {
    */
   export type LiftLeft<T, D = never> =
     T extends Zygon.Left<infer L>
-      ? LiftLeft<L>
+      ? LiftLeft<L, D>
       : // biome-ignore lint: could be any here
         T extends Zygon.Right<any>
         ? D
@@ -403,15 +403,19 @@ export namespace Zygon {
    * type C = Zygon.LiftRight<string>                               // string
    * ```
    */
-  export type LiftRight<T, D = never> =
-    T extends Zygon.Right<infer R>
-      ? LiftRight<R>
-      : // biome-ignore lint: could be any here
-        T extends Zygon.Left<any>
-        ? D
-        : unknown extends T
+  export type LiftRight<T, D = never> = [T] extends [never]
+    ? D
+    : // biome-ignore lint: we want to handle void cases here
+      [T] extends [void]
+      ? D
+      : T extends Zygon.Right<infer R>
+        ? LiftRight<R, D>
+        : // biome-ignore lint: could be any here
+          T extends Zygon.Left<any>
           ? D
-          : T
+          : unknown extends T
+            ? D
+            : T
 
   /**
    * Unwraps a {@link Zygon} and recursively lifts out the innermost success
