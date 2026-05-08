@@ -427,4 +427,120 @@ describe('Zygon', () => {
       expect(result.message).toBe('nested')
     })
   })
+
+  describe('LiftLeft and LiftRight', () => {
+    test('handles never in zygon value in LiftLeft using default', () => {
+      type Never = Zygon.LiftLeft<never, string>
+      type E = Equal<Never, string>
+
+      true satisfies Expect<E>
+    })
+
+    test('handles void in zygon value in LiftLeft not using default', () => {
+      type Void = Zygon.LiftLeft<void, string>
+      type E = Equal<Void, void>
+
+      true satisfies Expect<E>
+    })
+
+    test('handles null and undefined in zygon value in LiftLeft not using default', () => {
+      type Null = Zygon.LiftLeft<null, string>
+      type Undefined = Zygon.LiftLeft<undefined, string>
+
+      true satisfies Expect<Equal<Null, null>>
+      true satisfies Expect<Equal<Undefined, undefined>>
+    })
+
+    test('handles Left and never in zygon value in LiftLeft using default', () => {
+      type Never = Zygon.LiftLeft<Zygon<never, unknown>, string>
+
+      true satisfies Expect<Equal<Never, string>>
+    })
+
+    test('handles Right and zygon value in LiftLeft using default', () => {
+      type Number = Zygon.LiftLeft<Zygon.Right<string>, number>
+
+      true satisfies Expect<Equal<Number, number>>
+    })
+
+    test('handles unknown and zygon value in LiftLeft not using default', () => {
+      type Unknown = Zygon.LiftLeft<unknown, number>
+
+      true satisfies Expect<Equal<Unknown, unknown>>
+    })
+
+    test('handles unknown and zygon value in LiftLeft not using default', () => {
+      type Unknown = Zygon.LiftLeft<Zygon.Left<unknown>, number>
+
+      true satisfies Expect<Equal<Unknown, unknown>>
+    })
+
+    test('handles never in zygon value in LiftRight using default', () => {
+      type Never = Zygon.LiftRight<never, string>
+      type E = Equal<Never, string>
+
+      true satisfies Expect<E>
+    })
+
+    test('handles void in zygon value in LiftRight using default', () => {
+      type String = Zygon.LiftRight<void, string>
+      type E = Equal<String, string>
+
+      true satisfies Expect<E>
+    })
+
+    test('handles null and undefined in zygon value in LiftRight not using default', () => {
+      type Null = Zygon.LiftRight<null, string>
+      type Undefined = Zygon.LiftRight<undefined, string>
+
+      true satisfies Expect<Equal<Null, null>>
+      true satisfies Expect<Equal<Undefined, undefined>>
+    })
+
+    test('handles Right and never in zygon value in LiftRight using default', () => {
+      type String = Zygon.LiftRight<Zygon<string, never>, string>
+
+      true satisfies Expect<Equal<String, string>>
+    })
+
+    test('handles Left and zygon value in LiftRight using default', () => {
+      type Number = Zygon.LiftRight<Zygon.Left<string>, number>
+
+      true satisfies Expect<Equal<Number, number>>
+    })
+
+    test('handles unknown and zygon value in LiftRight using default', () => {
+      type Number = Zygon.LiftRight<unknown, number>
+
+      true satisfies Expect<Equal<Number, number>>
+    })
+
+    test('handles unknown and zygon value in LiftRight using default', () => {
+      type Number = Zygon.LiftRight<Zygon.Right<unknown>, number>
+
+      true satisfies Expect<Equal<Number, number>>
+    })
+  })
+
+  describe('Merge', () => {
+    test('it merges two non zygon value', () => {
+      type Str = Zygon.Merge<number, string>
+
+      true satisfies Expect<Equal<Str, string>>
+    })
+
+    test('it merges one Zygon with a scalar', () => {
+      type Z = Zygon.Merge<Zygon.Left<number>, string>
+      type Z2 = Zygon.Merge<Zygon.Left<number>, string, Error>
+
+      true satisfies Expect<Equal<Z, Zygon<string, unknown>>>
+      true satisfies Expect<Equal<Z2, Zygon<string, Error>>>
+    })
+
+    test('it merges two zygon', () => {
+      type R = Zygon.Merge<Zygon<number, string>, Zygon<string, Error>>
+
+      true satisfies Expect<Equal<R, Zygon<string, string | Error>>>
+    })
+  })
 })

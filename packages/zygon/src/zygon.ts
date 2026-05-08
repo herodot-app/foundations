@@ -131,7 +131,7 @@ export namespace Zygon {
    * ok.left // 42
    * ```
    */
-  export function left<T>(left: T): Zygon<T, unknown> {
+  export function left<T>(left: T): Zygon<T, never> {
     return Idion.create({
       id: identifier,
       value: Idion.create({
@@ -154,7 +154,7 @@ export namespace Zygon {
    * err.right // Error: oops
    * ```
    */
-  export function right<T>(right: T): Zygon<unknown, T> {
+  export function right<T>(right: T): Zygon<never, T> {
     return Idion.create({
       id: identifier,
       value: Idion.create({
@@ -375,15 +375,14 @@ export namespace Zygon {
    * type C = Zygon.LiftLeft<string>                            // string
    * ```
    */
-  export type LiftLeft<T, D = never> =
-    T extends Zygon.Left<infer L>
+  export type LiftLeft<T, D = never> = [T] extends [never]
+    ? D
+    : T extends Zygon.Left<infer L>
       ? LiftLeft<L, D>
       : // biome-ignore lint: could be any here
         T extends Zygon.Right<any>
         ? D
-        : unknown extends T
-          ? D
-          : T
+        : T
 
   /**
    * Recursively extracts the innermost failure value from a type, unwrapping
@@ -406,16 +405,22 @@ export namespace Zygon {
   export type LiftRight<T, D = never> = [T] extends [never]
     ? D
     : // biome-ignore lint: we want to handle void cases here
-      [T] extends [void]
+      [void] extends [T]
       ? D
       : T extends Zygon.Right<infer R>
         ? LiftRight<R, D>
         : // biome-ignore lint: could be any here
           T extends Zygon.Left<any>
           ? D
-          : unknown extends T
+          : [unknown] extends [T]
             ? D
             : T
+
+  export type Merge<A, B, D = unknown> = [A] extends [Zygon<any, infer RA>]
+    ? [B] extends [Zygon<infer LB, infer RB>]
+      ? Zygon<LB, Zygon.LiftRight<RB, D> | Zygon.LiftRight<RA, D>>
+      : Zygon<B, Zygon.LiftRight<A, D>>
+    : B
 
   /**
    * Unwraps a {@link Zygon} and recursively lifts out the innermost success
