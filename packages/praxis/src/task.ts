@@ -65,7 +65,7 @@ export namespace Task {
 
   export function create<I = undefined, L = unknown, R = RuntimePtoma>(
     input: CreateInput<I, L>,
-  ): Task<I, L, R | ExtractZygonRight<L>> {
+  ): Task<I, L, R | Zygon.LiftRight<L>> {
     const rawRun = input.run
     const controllerRef = Rheon.create(
       input.controller ?? new AbortController(),
@@ -111,15 +111,33 @@ export namespace Task {
         controllerRef,
         externalRef,
       },
-    }) as Task<I, L, R | ExtractZygonRight<L>>
+    }) as Task<I, L, R | Zygon.LiftRight<L>>
   }
 
   export type InferRunInput<T> = [undefined] extends [T] ? [] : [T]
 
+  export type InferRunReturn<
+    I = undefined,
+    L = unknown,
+    R = RuntimePtoma,
+  > = Awaited<ReturnType<typeof Task.run<I, L, R>>>
+
+  export type InferRunReturnLeft<
+    I = undefined,
+    L = unknown,
+    R = RuntimePtoma,
+  > = Zygon.LiftLeft<InferRunReturn<I, L, R>>
+
+  export type InferRunReturnRight<
+    I = undefined,
+    L = unknown,
+    R = RuntimePtoma,
+  > = Zygon.LiftRight<InferRunReturn<I, L, R>, unknown>
+
   export async function run<I = undefined, L = unknown, R = RuntimePtoma>(
     task: Task<I, L, R>,
     ...inputs: InferRunInput<I>
-  ): Promise<Zygon<Zygon.LiftLeft<Awaited<L>>, Zygon.LiftRight<Awaited<R>>>> {
+  ): Promise<Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>> {
     const input = inputs.at(0)
 
     if (isInternal(task)) {
