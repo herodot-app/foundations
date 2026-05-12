@@ -203,10 +203,7 @@ describe('Task', () => {
       const result = await Task.run(task)
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(Ptoma.is(result.right)).toBe(true)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
     it('preserves the abort reason when aborted during execution', async () => {
@@ -223,7 +220,7 @@ describe('Task', () => {
       const result = await Task.run(task)
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right?.cause).toBe('timeout exceeded')
+      expect(result.right?.message).toBe('timeout exceeded')
     })
 
     it('can be aborted from outside while task is running', async () => {
@@ -251,10 +248,8 @@ describe('Task', () => {
       const result = await runPromise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
-      expect(result.right?.cause).toBe('external abort')
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
+      expect(result.right?.message).toBe('external abort')
     })
 
     it('succeeds when not aborted', async () => {
@@ -401,45 +396,8 @@ describe('Task', () => {
       const result = await Task.run(task)
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
-      expect(result.right?.cause).toBe('pre-aborted')
-    })
-  })
-
-  describe('Task.RuntimePtoma', () => {
-    it('creates a RuntimePtoma with correct type', () => {
-      const ptoma = new Task.RuntimePtoma('test', undefined, {
-        cause: new Error('oops'),
-      })
-
-      expect(Ptoma.is(ptoma)).toBe(true)
-      expect(ptoma.name).toBe('@herodot-app/praxis/task/runtime-ptoma')
-    })
-
-    it('uses static properties for error messages', () => {
-      expect(
-        Task.RuntimePtoma.isRun(new Task.RuntimePtoma(Task.RuntimePtoma.RUN)),
-      ).toBe(true)
-
-      expect(
-        Task.RuntimePtoma.isLiftLeft(
-          new Task.RuntimePtoma(Task.RuntimePtoma.LIFT_LEFT),
-        ),
-      ).toBe(true)
-
-      expect(
-        Task.RuntimePtoma.isLiftRight(
-          new Task.RuntimePtoma(Task.RuntimePtoma.LIFT_RIGHT),
-        ),
-      ).toBe(true)
-
-      expect(
-        Task.RuntimePtoma.isAborted(
-          new Task.RuntimePtoma(Task.RuntimePtoma.ABORTED),
-        ),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
+      expect(result.right?.message).toBe('pre-aborted')
     })
   })
 })

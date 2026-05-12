@@ -2,8 +2,8 @@ import { Rheon } from '@herodot-app/rheon'
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
 
-export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
-  static create<I = undefined, L = unknown, R = Task.RuntimePtoma>(
+export class Praxis<I = undefined, L = unknown, R = Task.Failures> {
+  static create<I = undefined, L = unknown, R = Task.Failures>(
     fn: Task.RawRun<I, L>,
   ): Praxis<I, Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>> {
     const task = Task.create<I, L, R>({
@@ -30,7 +30,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     this.inherit.bind(this)
   }
 
-  pipe<L2 = unknown, R2 = Task.RuntimePtoma>(
+  pipe<L2 = unknown, R2 = Task.Failures>(
     runner: Task.RawRun<Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>, L2>,
   ): Praxis<
     I,
@@ -57,7 +57,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     >
   }
 
-  chain<L2 = unknown, R2 = Task.RuntimePtoma>(
+  chain<L2 = unknown, R2 = Task.Failures>(
     runner: Task.RawRun<Zygon.LiftLeft<L>, L2>,
   ): Praxis<
     I,
@@ -84,7 +84,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     >
   }
 
-  chainRight<R2 = Task.RuntimePtoma>(
+  chainRight<R2 = Task.Failures>(
     runner: Task.RawRun<R | Zygon.LiftRight<L>, R2>,
   ): Praxis<I, L, InferChainRightReturn<Awaited<R2>>> {
     const newTask = Task.create({
@@ -108,7 +108,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     >
   }
 
-  recover<L2 = unknown, R2 = Task.RuntimePtoma>(
+  recover<L2 = unknown, R2 = Task.Failures>(
     runner: Task.RawRun<R | Zygon.LiftRight<L>, L2>,
   ): Praxis<I, L | Zygon.LiftLeft<L2>, R | R2 | Zygon.LiftRight<L2>> {
     const newTask = Task.create({
@@ -224,7 +224,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     Task.abort(this.task, reason)
   }
 
-  inherit<I2 = undefined, L2 = unknown, R2 = Task.RuntimePtoma>(
+  inherit<I2 = undefined, L2 = unknown, R2 = Task.Failures>(
     task: Task<I2, L2, R2>,
   ): Task<I2, L2, R2> {
     task.externalRef = this.task.externalRef

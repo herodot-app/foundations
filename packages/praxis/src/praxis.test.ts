@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { Ptoma } from '@herodot-app/ptoma'
 import { Zygon } from '@herodot-app/zygon'
 import { Praxis } from './praxis'
 import { Task } from './task'
@@ -223,7 +224,7 @@ describe('Praxis', () => {
       }).chainRight(async error => {
         await Promise.resolve()
 
-        return error instanceof Task.RuntimePtoma ? '' : error.toUpperCase()
+        return Ptoma.is(error) ? '' : error.toUpperCase()
       })
 
       const result = await praxis.run()
@@ -235,7 +236,7 @@ describe('Praxis', () => {
     it('can chainRight multiple times', async () => {
       const praxis = Praxis.create(() => Zygon.right(new Error('hello')))
         .chainRight(error => error.message.length)
-        .chainRight(length => (length instanceof Error ? 0 : length * 2))
+        .chainRight(length => length * 2)
 
       const result = await praxis.run()
 
@@ -777,7 +778,7 @@ describe('Praxis', () => {
   })
 
   describe('Praxis.abort', () => {
-    it('aborts a simple praxis and returns RuntimePtoma', async () => {
+    it('aborts a simple praxis and returns Task.Aborted', async () => {
       const praxis = Praxis.create(async (x: number) => {
         await new Promise(resolve => setTimeout(resolve, 200))
 
@@ -791,10 +792,7 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
     it('aborts a piped praxis and returns RuntimePtoma', async () => {
@@ -815,10 +813,7 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
     it('aborts a chained praxis and returns RuntimePtoma', async () => {
@@ -834,13 +829,10 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
-    it('aborts a chainRight praxis and returns RuntimePtoma', async () => {
+    it('does not aborts a failed chainRight praxis and returns RuntimePtoma', async () => {
       const praxis = Praxis.create(() => {
         throw new Error('error')
       }).chainRight(async (val: Error) => {
@@ -856,9 +848,7 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      // biome-ignore lint: any is fine here
-      expect(Task.RuntimePtoma.isAborted(result.right as any)).toBe(false)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(false)
     })
 
     it('aborts a recovered praxis and returns RuntimePtoma', async () => {
@@ -877,10 +867,7 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
     it('aborts a merged praxis and returns RuntimePtoma', async () => {
@@ -896,10 +883,7 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
     it('aborts a multiple chained praxis and returns RuntimePtoma', async () => {
@@ -918,10 +902,7 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
     it('aborts with custom reason', async () => {
@@ -938,13 +919,8 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
-      expect(
-        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
-      ).toBe(true)
-      expect((result.right as Task.RuntimePtoma).cause).toBe(
-        'custom abort reason',
-      )
+      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
+      expect((result.right as Task.Aborted).message).toBe('custom abort reason')
     })
 
     it('returns RuntimePtoma without aborting if task already completed', async () => {

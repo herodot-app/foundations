@@ -3,7 +3,7 @@ import { Ptoma } from '@herodot-app/ptoma'
 import { Rheon } from '@herodot-app/rheon'
 import { Zygon } from '@herodot-app/zygon'
 
-export type Task<I = undefined, L = unknown, R = Task.RuntimePtoma> = Idion<
+export type Task<I = undefined, L = unknown, R = Task.Failures> = Idion<
   Task.Identifier,
   {
     run: Task.Run<I, L, R>
@@ -17,32 +17,29 @@ export namespace Task {
 
   export type Identifier = typeof identifier
 
-  export class RuntimePtoma extends Ptoma.create(
-    '@herodot-app/praxis/task/runtime-ptoma',
-  ) {
-    static readonly RUN = 'unknown runtime error in task.run'
-    static readonly LIFT_RIGHT =
-      'unable to unwrap the right zygon during a task.run'
-    static readonly LIFT_LEFT =
-      'unable to unwrap the left zygon during a task.run'
-    static readonly ABORTED = 'the task.run has been aborted'
+  export class RuntimeFailure extends Ptoma.create(
+    '@herodot-app/praxis/task/runtimme-failure',
+  ) {}
 
-    static isRun(ptoma: RuntimePtoma): boolean {
-      return ptoma.message === RuntimePtoma.RUN
-    }
+  export class LiftRightFailure extends Ptoma.create(
+    '@herodot-app/praxis/task/lift-right-failure',
+    'unable to lift the right of a Task.run zygon result',
+  ) {}
 
-    static isLiftLeft(ptoma: RuntimePtoma): boolean {
-      return ptoma.message === RuntimePtoma.LIFT_LEFT
-    }
+  export class LiftLeftFailure extends Ptoma.create(
+    '@herodot-app/praxis/task/lift-right-failure',
+    'unable to lift the left of a Task.run zygon result',
+  ) {}
 
-    static isLiftRight(ptoma: RuntimePtoma): boolean {
-      return ptoma.message === RuntimePtoma.LIFT_RIGHT
-    }
+  export class Aborted extends Ptoma.create(
+    '@herodot-app/praxis/task/aborted',
+  ) {}
 
-    static isAborted(ptoma: RuntimePtoma): boolean {
-      return ptoma.message === RuntimePtoma.ABORTED
-    }
-  }
+  export type Failures =
+    | RuntimeFailure
+    | LiftRightFailure
+    | LiftLeftFailure
+    | Aborted
 
   export type ExtractZygonRight<T> =
     // biome-ignore lint: we want any here to accept any Zygon
@@ -52,7 +49,7 @@ export namespace Task {
     ? (input?: I) => R
     : (input: I) => R
 
-  export type Run<I = undefined, L = unknown, R = RuntimePtoma> = [
+  export type Run<I = undefined, L = unknown, R = Failures> = [
     undefined,
   ] extends [I]
     ? (input?: I) => Promise<Zygon<L, R>>
@@ -64,7 +61,7 @@ export namespace Task {
     external?: boolean
   }
 
-  export function create<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function create<I = undefined, L = unknown, R = Failures>(
     input: CreateInput<I, L>,
   ): Task<I, L, R | Zygon.LiftRight<L>> {
     const rawRun = input.run
@@ -77,9 +74,7 @@ export namespace Task {
       try {
         if (Rheon.read(controllerRef).signal.aborted) {
           return Zygon.right(
-            new RuntimePtoma(RuntimePtoma.ABORTED, undefined, {
-              cause: Rheon.read(controllerRef).signal.reason,
-            }),
+            new Aborted(Rheon.read(controllerRef).signal.reason),
           )
         }
 
@@ -87,9 +82,7 @@ export namespace Task {
 
         if (Rheon.read(controllerRef).signal.aborted) {
           return Zygon.right(
-            new RuntimePtoma(RuntimePtoma.ABORTED, undefined, {
-              cause: Rheon.read(controllerRef).signal.reason,
-            }),
+            new Aborted(Rheon.read(controllerRef).signal.reason),
           )
         }
 
@@ -98,7 +91,7 @@ export namespace Task {
         return Zygon.left(result)
       } catch (err) {
         return Zygon.right(
-          new RuntimePtoma(RuntimePtoma.RUN, undefined, {
+          new RuntimeFailure('runtime failure during a Task.run', undefined, {
             cause: err,
           }),
         )
@@ -120,22 +113,22 @@ export namespace Task {
   export type InferRunReturn<
     I = undefined,
     L = unknown,
-    R = RuntimePtoma,
+    R = Failures,
   > = Awaited<ReturnType<typeof Task.run<I, L, R>>>
 
   export type InferRunReturnLeft<
     I = undefined,
     L = unknown,
-    R = RuntimePtoma,
+    R = Failures,
   > = Zygon.LiftLeft<InferRunReturn<I, L, R>>
 
   export type InferRunReturnRight<
     I = undefined,
     L = unknown,
-    R = RuntimePtoma,
+    R = Failures,
   > = Zygon.LiftRight<InferRunReturn<I, L, R>, unknown>
 
-  export async function run<I = undefined, L = unknown, R = RuntimePtoma>(
+  export async function run<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
     ...inputs: InferRunInput<I>
   ): Promise<Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>> {
@@ -151,27 +144,24 @@ export namespace Task {
 
     if (Zygon.isRight(result)) {
       return Zygon.right(
-        Zygon.unwrapLiftRight(
-          result,
-          new RuntimePtoma(RuntimePtoma.LIFT_RIGHT),
-        ),
+        Zygon.unwrapLiftRight(result, new LiftRightFailure()),
         // biome-ignore lint: inference is done in the function signature
       ) as Zygon<any, any>
     }
 
     return Zygon.left(
-      Zygon.unwrapLiftLeft(result, new RuntimePtoma(RuntimePtoma.LIFT_LEFT)),
+      Zygon.unwrapLiftLeft(result, new LiftLeftFailure()),
       // biome-ignore lint: inference is done in the function signature
     ) as Zygon<any, any>
   }
 
-  export function aborted<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function aborted<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
   ): boolean {
     return Rheon.read(task.controllerRef).signal.aborted
   }
 
-  export function abort<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function abort<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
     reason?: string,
   ): void {
@@ -180,31 +170,31 @@ export namespace Task {
     controller.abort(reason)
   }
 
-  export function controller<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function controller<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
   ): AbortController {
     return Rheon.read(task.controllerRef)
   }
 
-  export function externalized<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function externalized<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
   ): void {
     Rheon.write(task.externalRef, true)
   }
 
-  export function internalized<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function internalized<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
   ): void {
     Rheon.write(task.externalRef, false)
   }
 
-  export function isExternal<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function isExternal<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
   ): boolean {
     return true === Rheon.read(task.externalRef)
   }
 
-  export function isInternal<I = undefined, L = unknown, R = RuntimePtoma>(
+  export function isInternal<I = undefined, L = unknown, R = Failures>(
     task: Task<I, L, R>,
   ): boolean {
     return false === Rheon.read(task.externalRef)
