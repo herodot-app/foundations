@@ -61,6 +61,7 @@ export namespace Task {
   export type CreateInput<I = undefined, L = unknown> = {
     run: RawRun<I, L>
     controller?: AbortController
+    external?: boolean
   }
 
   export function create<I = undefined, L = unknown, R = RuntimePtoma>(
@@ -70,7 +71,7 @@ export namespace Task {
     const controllerRef = Rheon.create(
       input.controller ?? new AbortController(),
     )
-    const externalRef = Rheon.create(false)
+    const externalRef = Rheon.create(input.external ?? false)
 
     const run = async (input: I) => {
       try {
