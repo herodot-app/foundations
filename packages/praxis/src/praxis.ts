@@ -1,10 +1,6 @@
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
 
-type InferChainRightReturn<R> =
-  // biome-ignore lint: could be any zygon here
-  R extends Zygon<any, any> ? Zygon.LiftRight<R> : R
-
 export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   static create<I = undefined, L = unknown, R = Task.RuntimePtoma>(
     fn: Task.RawRun<I, L>,
@@ -27,6 +23,8 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     this.chainRight.bind(this)
     this.recover.bind(this)
     this.merge.bind(this)
+    this.execute.bind(this)
+    this.effect.bind(this)
     this.inherit.bind(this)
   }
 
@@ -217,3 +215,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     return task
   }
 }
+
+type InferChainRightReturn<R> =
+  // biome-ignore lint: could be any zygon here
+  R extends Zygon<any, any> ? Zygon.LiftRight<R> : R
