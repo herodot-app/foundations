@@ -1,4 +1,3 @@
-import { Rheon } from '@herodot-app/rheon'
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
 
@@ -26,23 +25,17 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     Zygon.LiftLeft<L2>,
     R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
   > {
-    const currentTask = this.task
-
     const newTask = Task.create({
       run: async (input?: I) => {
         // biome-ignore lint: unable to infer the input correctly here
-        const result = await (Task.run as any)(currentTask, input)
+        const result = await (Task.run as any)(this.task, input)
         const newResult = await Promise.resolve(runner(result))
 
         return newResult
       },
-      controller: Rheon.read(currentTask.controllerRef),
     })
 
-    newTask.externalRef = currentTask.externalRef
-    newTask.controllerRef = currentTask.controllerRef
-
-    return new Praxis(newTask) as unknown as Praxis<
+    return new Praxis(this.inherit(newTask)) as unknown as Praxis<
       I,
       Zygon.LiftLeft<L2>,
       R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
@@ -56,12 +49,10 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     Zygon.LiftLeft<L2>,
     R | R2 | Zygon.LiftRight<L> | Zygon.LiftRight<L2>
   > {
-    const currentTask = this.task
-
     const newTask = Task.create({
       run: async (input?: I) => {
         // biome-ignore lint: unable to infer the input correctly here
-        const result = await (Task.run as any)(currentTask, input)
+        const result = await (Task.run as any)(this.task, input)
 
         if (Zygon.isRight(result)) return result
 
@@ -69,13 +60,9 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
 
         return newResult
       },
-      controller: Rheon.read(currentTask.controllerRef),
     })
 
-    newTask.externalRef = currentTask.externalRef
-    newTask.controllerRef = currentTask.controllerRef
-
-    return new Praxis(newTask) as unknown as Praxis<
+    return new Praxis(this.inherit(newTask)) as unknown as Praxis<
       I,
       Zygon.LiftLeft<L2>,
       R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
@@ -89,5 +76,14 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
 
     // biome-ignore lint: unable to infer the input args correctly here
     return (Task.run as any)(this.task, input)
+  }
+
+  private inherit<I2 = undefined, L2 = unknown, R2 = Task.RuntimePtoma>(
+    task: Task<I2, L2, R2>,
+  ): Task<I2, L2, R2> {
+    task.externalRef = this.task.externalRef
+    task.controllerRef = this.task.controllerRef
+
+    return task
   }
 }
