@@ -184,7 +184,7 @@ A `Ptoma` is a real `Error` — it has a `message`, a `stack`, and a `cause`. On
 | `N` | `string` | The unique name literal of this error kind. |
 | `P` | — | The payload type. Defaults to `undefined` (no payload). |
 
-### `Ptoma.create<N, P>(name)`
+### `Ptoma.create<N, P>(name, defaultMessage?)`
 
 Creates a new error class for the given name. Returns a typed constructor.
 
@@ -197,6 +197,15 @@ const err = new NotFound('not found', { id: '42' })
 ```
 
 When `P` is omitted or `undefined`, the payload parameter is optional. When `P` is a concrete type, it is required — because context-free errors are a burden to whoever has to debug them at 2am.
+
+You can provide an optional `defaultMessage` as the second parameter. This message will be used when the error is instantiated without an explicit message:
+
+```ts
+class NotFound extends Ptoma.create<'NotFound', { id: string }>('NotFound', 'Resource not found') {}
+
+throw new NotFound(undefined, { id: '42' }) // message will be 'Resource not found'
+throw new NotFound('Custom message', { id: '42' }) // message will be 'Custom message'
+```
 
 ### `Ptoma.is(subject, name?)`
 

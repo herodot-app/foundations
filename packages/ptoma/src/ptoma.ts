@@ -117,7 +117,7 @@ export namespace Ptoma {
     undefined,
   ] extends [P]
     ? new (
-        message: string,
+        message?: string,
         payload?: P,
         options?: ErrorOptions,
       ) => Ptoma<N, P>
@@ -153,10 +153,12 @@ export namespace Ptoma {
    *   across your error taxonomy, or `Ptoma.is()` will have opinions.
    * @typeParam P - Optional payload type. Omit for payload-free errors.
    * @param name - The runtime name string, mirroring the `N` type parameter.
+   * @param defaultMessage - Optional default message used when no message is provided during instantiation.
    * @returns A constructor that produces fully-typed {@link Ptoma} instances.
    */
   export function create<N extends string, P = undefined>(
     name: N,
+    defaultMessage?: string,
   ): Constructor<N, P> {
     const id = identifier
 
@@ -167,7 +169,7 @@ export namespace Ptoma {
         public payload?: P,
         options?: ErrorOptions,
       ) {
-        super(message, options)
+        super(message ?? defaultMessage, options)
 
         // biome-ignore lint: we want to use a symbol to brand the instance without risking key collisions.
         ;(this as any)[id] = true
