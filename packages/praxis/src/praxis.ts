@@ -1,5 +1,6 @@
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
+import { Rheon } from '@herodot-app/rheon'
 
 export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   static create<I = undefined, L = unknown, R = Task.RuntimePtoma>(
@@ -7,6 +8,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   ): Praxis<I, Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>> {
     const task = Task.create<I, L, R>({
       run: fn,
+      external: true,
     })
 
     return new Praxis(task) as unknown as Praxis<
@@ -39,6 +41,9 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
       run: async (input?: I) => {
         // biome-ignore lint: unable to infer the input correctly here
         const result = await (Task.run as any)(this.task, input)
+
+        if (Task.aborted(this.task)) return result
+
         const newResult = await Promise.resolve(runner(result))
 
         return newResult
@@ -88,6 +93,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
         const result = await (Task.run as any)(this.task, input)
 
         if (Zygon.isLeft(result)) return result
+        if (Task.aborted(this.task)) return result
 
         const newResult = await Promise.resolve(runner(result.right))
 
@@ -111,6 +117,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
         const result = await (Task.run as any)(this.task, input)
 
         if (Zygon.isLeft(result)) return result
+        if (Task.aborted(this.task)) return result
 
         return await Promise.resolve(runner(result.right))
       },
@@ -167,6 +174,8 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
         // biome-ignore lint: unable to infer the input correctly here
         const result = await (Task.run as any)(this.task, input)
 
+        if (Task.aborted(this.task)) return result
+
         await Promise.resolve(runner(result))
 
         return result
@@ -188,6 +197,8 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
         // biome-ignore lint: unable to infer the input correctly here
         const result = await (Task.run as any)(this.task, input)
 
+        if (Task.aborted(this.task)) return result
+
         new Promise(() => runner(result)).catch(err => catcher?.(err))
 
         return result
@@ -202,8 +213,15 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   ): Promise<Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>> {
     const input = inputs.at(0)
 
+    Rheon.write(this.task.controllerRef, new AbortController())
+    Rheon.write(this.task.externalRef, true)
+
     // biome-ignore lint: unable to infer the input args correctly here
     return (Task.run as any)(this.task, input)
+  }
+
+  abort(reason?: string): void {
+    Task.abort(this.task, reason)
   }
 
   inherit<I2 = undefined, L2 = unknown, R2 = Task.RuntimePtoma>(

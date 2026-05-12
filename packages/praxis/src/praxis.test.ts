@@ -775,4 +775,191 @@ describe('Praxis', () => {
       expect(receivedResult.left).toBe(15)
     })
   })
+
+  describe('Praxis.abort', () => {
+    it('aborts a simple praxis and returns RuntimePtoma', async () => {
+      const praxis = Praxis.create(async (x: number) => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+
+        return x * 2
+      })
+
+      const promise = praxis.run(10)
+
+      praxis.abort()
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(
+        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
+      ).toBe(true)
+    })
+
+    it('aborts a piped praxis and returns RuntimePtoma', async () => {
+      const praxis = Praxis.create(async (x: number) => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        return x + 1
+      }).pipe(result => {
+        if (Zygon.isLeft(result)) {
+          return result.left * 2
+        }
+        return result
+      })
+
+      const promise = praxis.run(10)
+
+      praxis.abort()
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(
+        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
+      ).toBe(true)
+    })
+
+    it('aborts a chained praxis and returns RuntimePtoma', async () => {
+      const praxis = Praxis.create(async (x: number) => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        return x + 1
+      }).chain(value => value * 2)
+
+      const promise = praxis.run(10)
+
+      praxis.abort()
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(
+        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
+      ).toBe(true)
+    })
+
+    it('aborts a chainRight praxis and returns RuntimePtoma', async () => {
+      const praxis = Praxis.create(() => {
+        throw new Error('error')
+      }).chainRight(async (val: Error) => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+
+        return val.message
+      })
+
+      const promise = praxis.run()
+
+      praxis.abort()
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(Task.RuntimePtoma.isAborted(result.right as any)).toBe(false)
+    })
+
+    it('aborts a recovered praxis and returns RuntimePtoma', async () => {
+      const praxis = Praxis.create(() => Zygon.right(new Error('error')))
+        .recover(async error => {
+          await new Promise(resolve => setTimeout(resolve, 200))
+
+          return error instanceof Error ? error.message : 'unknown'
+        })
+        .chain(value => value.toUpperCase())
+
+      const promise = praxis.run()
+
+      praxis.abort()
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(
+        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
+      ).toBe(true)
+    })
+
+    it('aborts a merged praxis and returns RuntimePtoma', async () => {
+      const praxis = Praxis.create(async (x: number) => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        return x + 1
+      }).merge(() => Praxis.create((y: number) => y * 2))
+
+      const promise = praxis.run(10)
+
+      praxis.abort()
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(
+        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
+      ).toBe(true)
+    })
+
+    it('aborts a multiple chained praxis and returns RuntimePtoma', async () => {
+      const praxis = Praxis.create(async (x: number) => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        return x
+      })
+        .chain(value => value + 1)
+        .chain(value => value * 2)
+        .pipe(result => (result.left ? result.left + 10 : result))
+
+      const promise = praxis.run(5)
+
+      praxis.abort()
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(
+        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
+      ).toBe(true)
+    })
+
+    it('aborts with custom reason', async () => {
+      const praxis = Praxis.create(async (x: number) => {
+        await new Promise(resolve => setTimeout(resolve, 200))
+
+        return x * 2
+      })
+
+      const promise = praxis.run(10)
+
+      praxis.abort('custom abort reason')
+
+      const result = await promise
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      expect(
+        Task.RuntimePtoma.isAborted(result.right as Task.RuntimePtoma),
+      ).toBe(true)
+      expect((result.right as Task.RuntimePtoma).cause).toBe(
+        'custom abort reason',
+      )
+    })
+
+    it('returns RuntimePtoma without aborting if task already completed', async () => {
+      const praxis = Praxis.create((x: number) => x * 2)
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+
+      praxis.abort()
+
+      const secondResult = await praxis.run(5)
+
+      expect(Zygon.isLeft(secondResult)).toBe(true)
+      expect(secondResult.left).toBe(10)
+    })
+  })
 })
