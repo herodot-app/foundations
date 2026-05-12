@@ -24,6 +24,10 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     this.pipe.bind(this)
     this.run.bind(this)
     this.chain.bind(this)
+    this.chainRight.bind(this)
+    this.recover.bind(this)
+    this.merge.bind(this)
+    this.inherit.bind(this)
   }
 
   pipe<L2 = unknown, R2 = Task.RuntimePtoma>(
@@ -142,6 +146,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
 
         this.inherit(otherPraxis.task)
 
+        // biome-ignore lint: unable to infer the input here
         return (otherPraxis.run as any)(result.left)
       },
     })
