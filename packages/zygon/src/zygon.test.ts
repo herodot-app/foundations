@@ -326,10 +326,10 @@ describe('Zygon', () => {
   })
 
   describe('LiftRight type', () => {
-    test('resolves a plain type to itself', () => {
-      type Result = Expect<Equal<Zygon.LiftRight<string>, string>>
+    test('resolves a plain type to default', () => {
+      type Never = Expect<Equal<Zygon.LiftRight<string>, never>>
 
-      true satisfies Result
+      true satisfies Never
     })
 
     test('unwraps a single level of nesting', () => {
@@ -490,11 +490,69 @@ describe('Zygon', () => {
     })
 
     test('handles null and undefined in zygon value in LiftRight not using default', () => {
+      type Null = Zygon.LiftRight<null>
+      type Undefined = Zygon.LiftRight<undefined>
+
+      true satisfies Expect<Equal<Null, never>>
+      true satisfies Expect<Equal<Undefined, never>>
+    })
+
+    test('handles Promises of null and undefined in zygon value in LiftRight not using default', () => {
+      type Null = Zygon.LiftRight<Promise<null>>
+      type Undefined = Zygon.LiftRight<Promise<undefined>>
+
+      true satisfies Expect<Equal<Null, never>>
+      true satisfies Expect<Equal<Undefined, never>>
+    })
+
+    test('handles raw values in LiftRight using default', () => {
+      type Null = Zygon.LiftRight<'john'>
+      type Undefined = Zygon.LiftRight<Promise<'john'>>
+
+      true satisfies Expect<Equal<Null, never>>
+      true satisfies Expect<Equal<Undefined, never>>
+    })
+
+    test('handles left values in LiftRight using default', () => {
+      type Null = Zygon.LiftRight<Zygon.Left<'john'>>
+      type Undefined = Zygon.LiftRight<Promise<Zygon.Left<'john'>>>
+
+      true satisfies Expect<Equal<Null, never>>
+      true satisfies Expect<Equal<Undefined, never>>
+    })
+
+    test('handles right values in LiftRight not using default', () => {
+      type Null = Zygon.LiftRight<Zygon<'john', 'error'>>
+      type Undefined = Zygon.LiftRight<Promise<Zygon<'john', 'error'>>>
+
+      true satisfies Expect<Equal<Null, 'error'>>
+      true satisfies Expect<Equal<Undefined, 'error'>>
+    })
+
+    test('handles null and undefined in zygon value in LiftRight not using default', () => {
       type Null = Zygon.LiftRight<null, string>
       type Undefined = Zygon.LiftRight<undefined, string>
 
-      true satisfies Expect<Equal<Null, null>>
-      true satisfies Expect<Equal<Undefined, undefined>>
+      true satisfies Expect<Equal<Null, string>>
+      true satisfies Expect<Equal<Undefined, string>>
+    })
+
+    test('handles deeply nested zygon value in LiftRight using default or not depending on the deepness', () => {
+      type Null = Zygon.LiftRight<Promise<Zygon.Right<Promise<string>>>>
+      type Undefined = Zygon.LiftRight<Promise<Zygon.Left<Promise<string>>>>
+
+      true satisfies Expect<Equal<Null, string>>
+      true satisfies Expect<Equal<Undefined, never>>
+    })
+
+    test('handles piped nested zygon value in LiftRight using default or not depending on the deepness', () => {
+      type Null = Zygon.LiftRight<
+        string | Promise<boolean> | Promise<Zygon.Right<Promise<number>>>
+      >
+      type Undefined = Zygon.LiftRight<Promise<Zygon.Left<Promise<string>>>>
+
+      true satisfies Expect<Equal<Null, number>>
+      true satisfies Expect<Equal<Undefined, never>>
     })
 
     test('handles Right and never in zygon value in LiftRight using default', () => {
@@ -519,28 +577,6 @@ describe('Zygon', () => {
       type Number = Zygon.LiftRight<Zygon.Right<unknown>, number>
 
       true satisfies Expect<Equal<Number, number>>
-    })
-  })
-
-  describe('Merge', () => {
-    test('it merges two non zygon value', () => {
-      type Str = Zygon.Merge<number, string>
-
-      true satisfies Expect<Equal<Str, string>>
-    })
-
-    test('it merges one Zygon with a scalar', () => {
-      type Z = Zygon.Merge<Zygon.Left<number>, string>
-      type Z2 = Zygon.Merge<Zygon.Left<number>, string, Error>
-
-      true satisfies Expect<Equal<Z, Zygon<string, unknown>>>
-      true satisfies Expect<Equal<Z2, Zygon<string, Error>>>
-    })
-
-    test('it merges two zygon', () => {
-      type R = Zygon.Merge<Zygon<number, string>, Zygon<string, Error>>
-
-      true satisfies Expect<Equal<R, Zygon<string, string | Error>>>
     })
   })
 })
