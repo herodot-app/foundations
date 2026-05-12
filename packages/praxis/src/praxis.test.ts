@@ -195,4 +195,79 @@ describe('Praxis', () => {
       expect(result.left).toBe(22)
     })
   })
+
+  describe('Praxis.chainRight', () => {
+    it('transforms Right values from the praxis', async () => {
+      const praxis = Praxis.create(() => {
+        throw new Error('error')
+      }).chainRight(() => 5)
+
+      const result = await praxis.run()
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBe(5)
+    })
+
+    it('stops chainRight on Left values', async () => {
+      const praxis = Praxis.create((x: number) => x * 2).chainRight(() => 2)
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+    })
+
+    it('handles async chainRight functions', async () => {
+      const praxis = Praxis.create(() => {
+        return Zygon.right('hello')
+      }).chainRight(async error => {
+        await Promise.resolve()
+
+        return error instanceof Task.RuntimePtoma ? '' : error.toUpperCase()
+      })
+
+      const result = await praxis.run()
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBe('HELLO')
+    })
+
+    it('can chainRight multiple times', async () => {
+      const praxis = Praxis.create(() => Zygon.right(new Error('hello')))
+        .chainRight(error => error.message.length)
+        .chainRight(length => (length instanceof Error ? 0 : length * 2))
+
+      const result = await praxis.run()
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBe(10)
+    })
+
+    it('can mix chain and chainRight', async () => {
+      const praxis = Praxis.create((n: number) => Zygon.right(n * 3))
+        .chainRight(() => Zygon.right(new Error('error')))
+        .chainRight(error =>
+          error instanceof Error ? error.message : 'unknown',
+        )
+        .chain(() => 3)
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBe('error')
+    })
+
+    it('can mix pipe with chainRight', async () => {
+      const praxis = Praxis.create(() => Zygon.right(new Error('nope')))
+        .pipe(result =>
+          result.right ? Zygon.right({ msg: result.right.message }) : result,
+        )
+        .chainRight(data => (data instanceof Error ? 0 : data.msg.length))
+
+      const result = await praxis.run()
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBe(4)
+    })
+  })
 })

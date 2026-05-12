@@ -1,6 +1,9 @@
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
 
+type InferChainRightReturn<R> =
+  R extends Zygon<any, any> ? Zygon.LiftRight<R> : R
+
 export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   static create<I = undefined, L = unknown, R = Task.RuntimePtoma>(
     fn: Task.RawRun<I, L>,
@@ -66,6 +69,29 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
       I,
       Zygon.LiftLeft<L2>,
       R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
+    >
+  }
+
+  chainRight<R2 = Task.RuntimePtoma>(
+    runner: Task.RawRun<R | Zygon.LiftRight<L>, R2>,
+  ): Praxis<I, L, InferChainRightReturn<Awaited<R2>>> {
+    const newTask = Task.create({
+      run: async (input?: I) => {
+        // biome-ignore lint: unable to infer the input correctly here
+        const result = await (Task.run as any)(this.task, input)
+
+        if (Zygon.isLeft(result)) return result
+
+        const newResult = await Promise.resolve(runner(result.right))
+
+        return Zygon.right(newResult)
+      },
+    })
+
+    return new Praxis(this.inherit(newTask)) as unknown as Praxis<
+      I,
+      L,
+      InferChainRightReturn<Awaited<R2>>
     >
   }
 
