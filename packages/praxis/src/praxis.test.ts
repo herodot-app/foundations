@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { Zygon } from '@herodot-app/zygon'
-import { Task } from './task'
 import { Praxis } from './praxis'
+import { Task } from './task'
 
 describe('Praxis', () => {
   describe('Praxis.create', () => {
@@ -125,6 +125,78 @@ describe('Praxis', () => {
       const result = await praxis.run()
 
       expect(Zygon.isRight(result)).toBe(true)
+    })
+  })
+
+  describe('Praxis.chain', () => {
+    it('transforms Left values from the praxis', async () => {
+      const praxis = Praxis.create((x: number) => x + 1).chain(
+        (value) => value * 2,
+      )
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(22)
+    })
+
+    it('stops chain on Right values', async () => {
+      const praxis = Praxis.create(() => {
+        throw new Error('chain error')
+      }).chain((value) => value * 2)
+
+      const result = await praxis.run()
+
+      expect(Zygon.isRight(result)).toBe(true)
+    })
+
+    it('preserves input type through chain', async () => {
+      const praxis = Praxis.create((x: string) => x.toUpperCase()).chain(
+        (value) => value.length,
+      )
+
+      const result = await praxis.run('hello')
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(5)
+    })
+
+    it('handles async chain functions', async () => {
+      const praxis = Praxis.create((x: number) => x * 2).chain(
+        async (value) => {
+          await Promise.resolve()
+          return value + 100
+        },
+      )
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(110)
+    })
+
+    it('can chain multiple times', async () => {
+      const praxis = Praxis.create((x: number) => x)
+        .chain((value) => value + 1)
+        .chain((value) => value * 2)
+        .chain((value) => value + 10)
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(22)
+    })
+
+    it('can mix chain and pipe', async () => {
+      const praxis = Praxis.create((x: number) => x)
+        .chain((value) => value + 1)
+        .pipe((result) => (result.left ? result.left * 2 : result))
+        .chain((value) => value + 10)
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(22)
     })
   })
 })

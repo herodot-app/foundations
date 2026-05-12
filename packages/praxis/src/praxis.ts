@@ -1,6 +1,6 @@
-import { type Zygon } from '@herodot-app/zygon'
-import { Task } from './task'
 import { Rheon } from '@herodot-app/rheon'
+import { Zygon } from '@herodot-app/zygon'
+import { Task } from './task'
 
 export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   static create<I = undefined, L = unknown, R = Task.RuntimePtoma>(
@@ -16,6 +16,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   constructor(public readonly task: Task<I, L, R>) {
     this.pipe.bind(this)
     this.run.bind(this)
+    this.chain.bind(this)
   }
 
   pipe<L2 = unknown, R2 = Task.RuntimePtoma>(
@@ -28,7 +29,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     const currentTask = this.task
 
     const newTask = Task.create({
-      run: async (input?: I): Promise<L2> => {
+      run: async (input?: I) => {
         // biome-ignore lint: unable to infer the input correctly here
         const result = await (Task.run as any)(currentTask, input)
         const newResult = await Promise.resolve(runner(result))
@@ -41,7 +42,40 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     newTask.externalRef = currentTask.externalRef
     newTask.controllerRef = currentTask.controllerRef
 
-    return new Praxis(newTask) as Praxis<
+    return new Praxis(newTask) as unknown as Praxis<
+      I,
+      Zygon.LiftLeft<L2>,
+      R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
+    >
+  }
+
+  chain<L2 = unknown, R2 = Task.RuntimePtoma>(
+    runner: Task.RawRun<Zygon.LiftLeft<L>, L2>,
+  ): Praxis<
+    I,
+    Zygon.LiftLeft<L2>,
+    R | R2 | Zygon.LiftRight<L> | Zygon.LiftRight<L2>
+  > {
+    const currentTask = this.task
+
+    const newTask = Task.create({
+      run: async (input?: I) => {
+        // biome-ignore lint: unable to infer the input correctly here
+        const result = await (Task.run as any)(currentTask, input)
+
+        if (Zygon.isRight(result)) return result
+
+        const newResult = await Promise.resolve(runner(result.left))
+
+        return newResult
+      },
+      controller: Rheon.read(currentTask.controllerRef),
+    })
+
+    newTask.externalRef = currentTask.externalRef
+    newTask.controllerRef = currentTask.controllerRef
+
+    return new Praxis(newTask) as unknown as Praxis<
       I,
       Zygon.LiftLeft<L2>,
       R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
