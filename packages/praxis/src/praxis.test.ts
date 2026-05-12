@@ -436,4 +436,343 @@ describe('Praxis', () => {
       expect(result.left).toBe(20)
     })
   })
+
+  describe('Praxis.execute', () => {
+    it('runs a side effect and returns original result', async () => {
+      let executed = false
+      const praxis = Praxis.create((x: number) => x * 2).execute(() => {
+        executed = true
+      })
+
+      const result = await praxis.run(10)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+    })
+
+    it('passes result to the executor function', async () => {
+      // biome-ignore lint: any is fine here
+      let receivedResult: any = null
+
+      const praxis = Praxis.create((x: number) => x + 1).execute(result => {
+        receivedResult = result
+      })
+
+      await praxis.run(5)
+
+      expect(Zygon.isLeft(receivedResult)).toBe(true)
+      expect(receivedResult.left).toBe(6)
+    })
+
+    it('handles async executor functions', async () => {
+      let executed = false
+
+      const praxis = Praxis.create((x: number) => x * 2).execute(async () => {
+        await Promise.resolve()
+        executed = true
+      })
+
+      const result = await praxis.run(5)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(10)
+    })
+
+    it('can chain execute with other methods', async () => {
+      let executed = false
+      const praxis = Praxis.create((x: number) => x + 1)
+        .execute(() => {
+          executed = true
+        })
+        .chain(value => value * 2)
+
+      const result = await praxis.run(5)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(12)
+    })
+
+    it('handles Right values in execute', async () => {
+      let executed = false
+      const praxis = Praxis.create(() => {
+        throw new Error('original error')
+      }).execute(() => {
+        executed = true
+      })
+
+      const result = await praxis.run()
+
+      expect(executed).toBe(true)
+      expect(Zygon.isRight(result)).toBe(true)
+    })
+
+    it('can chain multiple executes', async () => {
+      const executions: number[] = []
+
+      const praxis = Praxis.create((x: number) => x)
+        .execute(() => void executions.push(1))
+        .execute(() => void executions.push(2))
+        .execute(() => void executions.push(3))
+
+      const result = await praxis.run(5)
+
+      expect(executions).toEqual([1, 2, 3])
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(5)
+    })
+
+    it('can mix pipe with execute', async () => {
+      let executed = false
+
+      const praxis = Praxis.create((x: number) => x)
+        .pipe(result => (result.left ? result.left + 1 : result))
+        .execute(() => {
+          executed = true
+        })
+        .pipe(result => (result.left ? result.left * 2 : result))
+
+      const result = await praxis.run(10)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(22)
+    })
+
+    it('can mix chainRight with execute', async () => {
+      let executed = false
+
+      const praxis = Praxis.create((n: number) => Zygon.right(n * 2))
+        .execute(() => {
+          executed = true
+        })
+        .chainRight(val => (val instanceof Error ? 0 : val + 10))
+
+      const result = await praxis.run(5)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBe(20)
+    })
+  })
+
+  describe('Praxis.effect', () => {
+    it('fires effect asynchronously and returns original result', async () => {
+      const praxis = Praxis.create((x: number) => x * 2).effect(() => {})
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+    })
+
+    it('passes result to the effect function', async () => {
+      // biome-ignore lint: any is fine here
+      let receivedResult: any = null
+      const praxis = Praxis.create((x: number) => x + 1).effect(result => {
+        receivedResult = result
+      })
+
+      await praxis.run(5)
+
+      expect(Zygon.isLeft(receivedResult)).toBe(true)
+      expect(receivedResult.left).toBe(6)
+    })
+
+    it('handles async effect functions', async () => {
+      let executed = false
+
+      const praxis = Praxis.create((x: number) => x * 2).effect(async () => {
+        await Promise.resolve()
+        executed = true
+      })
+
+      const result = await praxis.run(5)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(10)
+    })
+
+    it('can chain effect with other methods', async () => {
+      let executed = false
+
+      const praxis = Praxis.create((x: number) => x + 1)
+        .effect(() => {
+          executed = true
+        })
+        .chain(value => value * 2)
+
+      const result = await praxis.run(5)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(12)
+    })
+
+    it('handles Right values in effect', async () => {
+      let executed = false
+
+      const praxis = Praxis.create(() => {
+        throw new Error('original error')
+      }).effect(() => {
+        executed = true
+      })
+
+      const result = await praxis.run()
+
+      expect(executed).toBe(true)
+      expect(Zygon.isRight(result)).toBe(true)
+    })
+
+    it('can chain multiple effects', async () => {
+      const executions: number[] = []
+
+      const praxis = Praxis.create((x: number) => x)
+        .effect(() => void executions.push(1))
+        .effect(() => void executions.push(2))
+        .effect(() => void executions.push(3))
+
+      const result = await praxis.run(5)
+
+      expect(executions).toEqual([1, 2, 3])
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(5)
+    })
+
+    it('can mix pipe with effect', async () => {
+      let executed = false
+
+      const praxis = Praxis.create((x: number) => x)
+        .pipe(result => (result.left ? result.left + 1 : result))
+        .effect(() => {
+          executed = true
+        })
+        .pipe(result => (result.left ? result.left * 2 : result))
+
+      const result = await praxis.run(10)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(22)
+    })
+
+    it('can mix chainRight with effect', async () => {
+      let executed = false
+      const praxis = Praxis.create((n: number) => Zygon.right(n * 2))
+        .effect(() => {
+          executed = true
+        })
+        .chainRight(val => (val instanceof Error ? 0 : val + 10))
+
+      const result = await praxis.run(5)
+
+      expect(executed).toBe(true)
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right).toBe(20)
+    })
+
+    it('calls catcher when effect throws', async () => {
+      // biome-ignore lint: any is fine here
+      let caughtError: any = null
+
+      const praxis = Praxis.create((x: number) => x).effect(
+        () => {
+          throw new Error('effect error')
+        },
+        err => {
+          caughtError = err
+        },
+      )
+
+      const result = await praxis.run(5)
+
+      expect(caughtError).toBeInstanceOf(Error)
+      expect(caughtError.message).toBe('effect error')
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(5)
+    })
+
+    it('execute effect in a separated promise flow that does not affect the praxis pipeline', async () => {
+      let done: boolean = false
+
+      const praxis = Praxis.create((x: number) => x).effect(() => {
+        throw new Error('effect error')
+      })
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(5)
+
+      const praxis2 = Praxis.create((x: number) => x * 2).effect(
+        () =>
+          new Promise(resolve =>
+            setTimeout(() => {
+              done = true
+
+              resolve()
+            }, 2000),
+          ),
+      )
+
+      const result2 = await praxis2.run(5)
+
+      expect(Zygon.isLeft(result2)).toBe(true)
+      expect(result2.left).toBe(10)
+      expect(done).toBe(false)
+    })
+
+    it('does not throw when effect fails without catcher', async () => {
+      const praxis = Praxis.create((x: number) => x).effect(() => {
+        throw new Error('unhandled effect error')
+      })
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(5)
+    })
+
+    it('effect runs after merge', async () => {
+      let executedInMerge = false
+      let executedInEffect = false
+
+      const praxis = Praxis.create((x: number) => x + 1)
+        .merge(() =>
+          Praxis.create((y: number) => {
+            executedInMerge = true
+            return y * 2
+          }),
+        )
+        .effect(() => {
+          executedInEffect = true
+        })
+
+      const result = await praxis.run(5)
+
+      expect(executedInMerge).toBe(true)
+      expect(executedInEffect).toBe(true)
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(12)
+    })
+
+    it('effect receives merged result', async () => {
+      // biome-ignore lint: any is fine here
+      let receivedResult: any = null
+
+      const praxis = Praxis.create((x: number) => x)
+        .merge(() => Praxis.create((y: number) => y + 10))
+        .effect(result => {
+          receivedResult = result
+        })
+
+      await praxis.run(5)
+
+      expect(Zygon.isLeft(receivedResult)).toBe(true)
+      expect(receivedResult.left).toBe(15)
+    })
+  })
 })

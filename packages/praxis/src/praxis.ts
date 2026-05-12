@@ -158,6 +158,47 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     >
   }
 
+  execute(
+    runner: Task.RawRun<
+      Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>,
+      void | Promise<void>
+    >,
+  ): Praxis<I, L, R> {
+    const newTask = Task.create({
+      run: async (input?: I) => {
+        // biome-ignore lint: unable to infer the input correctly here
+        const result = await (Task.run as any)(this.task, input)
+
+        await Promise.resolve(runner(result))
+
+        return result
+      },
+    })
+
+    return new Praxis(this.inherit(newTask)) as unknown as Praxis<I, L, R>
+  }
+
+  effect(
+    runner: Task.RawRun<
+      Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>,
+      void | Promise<void>
+    >,
+    catcher?: (err: unknown) => void,
+  ): Praxis<I, L, R> {
+    const newTask = Task.create({
+      run: async (input?: I) => {
+        // biome-ignore lint: unable to infer the input correctly here
+        const result = await (Task.run as any)(this.task, input)
+
+        new Promise(() => runner(result)).catch(err => catcher?.(err))
+
+        return result
+      },
+    })
+
+    return new Praxis(this.inherit(newTask)) as unknown as Praxis<I, L, R>
+  }
+
   run(
     ...inputs: Task.InferRunInput<I>
   ): Promise<Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>> {
