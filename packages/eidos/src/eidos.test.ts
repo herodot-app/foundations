@@ -230,7 +230,7 @@ describe('Eidos', () => {
       const timestampSchema = z
         .string()
         .datetime()
-        .transform((s) => new Date(s))
+        .transform(s => new Date(s))
 
       const eidos = Eidos.define({ name: 'Timestamp', schema: timestampSchema })
 
@@ -256,7 +256,7 @@ describe('Eidos', () => {
       const timestampSchema = z
         .string()
         .datetime()
-        .transform((s) => new Date(s))
+        .transform(s => new Date(s))
 
       const eidos = Eidos.define({ name: 'Timestamp', schema: timestampSchema })
 

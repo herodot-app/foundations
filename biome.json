@@ -24,7 +24,8 @@
       "trailingCommas": "all",
       "lineWidth": 80,
       "semicolons": "asNeeded",
-      "operatorLinebreak": "before"
+      "operatorLinebreak": "before",
+      "arrowParentheses": "asNeeded"
     }
   },
   "assist": {

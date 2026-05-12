@@ -229,7 +229,7 @@ describe('Task', () => {
     it('can be aborted from outside while task is running', async () => {
       let resolvePromise: () => void
 
-      const blocker = new Promise<void>((resolve) => {
+      const blocker = new Promise<void>(resolve => {
         resolvePromise = resolve
       })
 

@@ -165,7 +165,7 @@ describe('Zygon', () => {
         () => {
           throw new Error('raw error')
         },
-        (err) => (err as Error).message,
+        err => (err as Error).message,
       )
       const result = boom()
 
@@ -204,7 +204,7 @@ describe('Zygon', () => {
         async () => {
           throw new Error('async error')
         },
-        (err) => ({ message: (err as Error).message }),
+        err => ({ message: (err as Error).message }),
       )
       const result = await boom()
 

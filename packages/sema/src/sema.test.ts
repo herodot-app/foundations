@@ -176,14 +176,14 @@ describe('Sema', () => {
     test('returns projected value with selector', () => {
       const sema = Sema.create({ count: 10, name: 'Alice' })
 
-      expect(Sema.read(sema, (s) => s.count)).toBe(10)
+      expect(Sema.read(sema, s => s.count)).toBe(10)
     })
 
     test('selector receives raw value not Rheon', () => {
       const sema = Sema.create({ x: 1 })
       let received: unknown
 
-      Sema.read(sema, (v) => {
+      Sema.read(sema, v => {
         received = v
       })
 
@@ -201,7 +201,7 @@ describe('Sema', () => {
     test('works with string values', () => {
       const sema = Sema.create('hello')
 
-      expect(Sema.read(sema, (s) => s.length)).toBe(5)
+      expect(Sema.read(sema, s => s.length)).toBe(5)
     })
   })
 
@@ -288,7 +288,7 @@ describe('Sema', () => {
     test('updates value with writer function', () => {
       const sema = Sema.create(5)
 
-      Sema.write(sema, (n) => n * 2)
+      Sema.write(sema, n => n * 2)
 
       expect(Sema.read(sema)).toBe(10)
     })
@@ -319,7 +319,7 @@ describe('Sema', () => {
       const sema = Sema.create(0)
       const received: number[] = []
 
-      Agora.listen(sema, (v) => received.push(Number(v)))
+      Agora.listen(sema, v => received.push(Number(v)))
       Sema.write(sema, 1)
       Sema.write(sema, 2)
 
@@ -372,7 +372,7 @@ describe('Sema', () => {
       const sema = Sema.create(0)
       const received: number[] = []
 
-      Agora.listen(sema, (v) => received.push(Number(v)))
+      Agora.listen(sema, v => received.push(Number(v)))
       Agora.freeze(sema)
       Sema.write(sema, 42)
 
@@ -427,7 +427,7 @@ describe('Sema', () => {
       const received: number[] = []
 
       Sema.write(sema, 5)
-      Agora.listen(sema, (v) => received.push(Number(v)))
+      Agora.listen(sema, v => received.push(Number(v)))
       Sema.reset(sema)
 
       expect(received).toEqual([0])
@@ -464,7 +464,7 @@ describe('Sema', () => {
       const sema = Sema.create(0)
       const received: number[] = []
 
-      Agora.listen(sema, (v) => received.push(Number(v)))
+      Agora.listen(sema, v => received.push(Number(v)))
       Sema.batch(sema, () => {
         Sema.write(sema, 1)
         Sema.write(sema, 2)
@@ -514,14 +514,14 @@ describe('Sema', () => {
   describe('select', () => {
     test('creates a derivation from the source sema', () => {
       const source = Sema.create({ count: 0, name: 'Alice' })
-      const derived = Sema.select(source, (s) => s.count)
+      const derived = Sema.select(source, s => s.count)
 
       expect(Sema.read(derived)).toBe(0)
     })
 
     test('derivation stays in sync with source', () => {
       const source = Sema.create({ count: 0 })
-      const derived = Sema.select(source, (s) => s.count)
+      const derived = Sema.select(source, s => s.count)
 
       Sema.write(source, { count: 5 })
 
@@ -530,10 +530,10 @@ describe('Sema', () => {
 
     test('suppresses propagation when selected value is equal', () => {
       const source = Sema.create({ count: 0, name: 'Alice' })
-      const derived = Sema.select(source, (s) => s.count)
+      const derived = Sema.select(source, s => s.count)
       const received: number[] = []
 
-      Agora.listen(derived, (v) => received.push(v))
+      Agora.listen(derived, v => received.push(v))
       Sema.write(source, { count: 0, name: 'Bob' })
 
       expect(received).toEqual([])
@@ -541,10 +541,10 @@ describe('Sema', () => {
 
     test('propagates when selected value differs', () => {
       const source = Sema.create({ count: 0 })
-      const derived = Sema.select(source, (s) => s.count)
+      const derived = Sema.select(source, s => s.count)
       const received: number[] = []
 
-      Agora.listen(derived, (v) => received.push(v))
+      Agora.listen(derived, v => received.push(v))
       Sema.write(source, { count: 1 })
 
       expect(received).toEqual([1])
@@ -554,7 +554,7 @@ describe('Sema', () => {
       const source = Sema.create({ id: 1, name: 'Alice' })
       const derived = Sema.select(
         source,
-        (s) => s,
+        s => s,
         (a, b) => a.id === b.id,
       )
       const received: number[] = []
@@ -567,7 +567,7 @@ describe('Sema', () => {
 
     test('select is a Derivation', () => {
       const source = Sema.create(0)
-      const derived = Sema.select(source, (n) => n)
+      const derived = Sema.select(source, n => n)
 
       expect(Derivation.is(derived)).toBe(true)
     })

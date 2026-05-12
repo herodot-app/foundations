@@ -58,7 +58,7 @@ describe('Rheon.write', () => {
   test('writer function receives current value', () => {
     const rheon = Rheon.create(5)
 
-    Rheon.write(rheon, (v) => v * 2)
+    Rheon.write(rheon, v => v * 2)
 
     expect(Rheon.read(rheon)).toBe(10)
   })
@@ -66,7 +66,7 @@ describe('Rheon.write', () => {
   test('writer function works with strings', () => {
     const rheon = Rheon.create('hello')
 
-    Rheon.write(rheon, (s) => s + ' world')
+    Rheon.write(rheon, s => `${s} world`)
 
     expect(Rheon.read(rheon)).toBe('hello world')
   })
@@ -74,7 +74,7 @@ describe('Rheon.write', () => {
   test('writer function works with objects', () => {
     const rheon = Rheon.create({ count: 0 })
 
-    Rheon.write(rheon, (o) => ({ ...o, count: o.count + 1 }))
+    Rheon.write(rheon, o => ({ ...o, count: o.count + 1 }))
 
     expect(Rheon.read(rheon)).toEqual({ count: 1 })
   })
@@ -83,7 +83,7 @@ describe('Rheon.write', () => {
     const rheon = Rheon.create(1)
     let callCount = 0
 
-    Rheon.write(rheon, (v) => {
+    Rheon.write(rheon, v => {
       callCount++
       return v + 1
     })
@@ -152,7 +152,7 @@ describe('Rheon.Infer', () => {
 
   test('works with numeric rheons', () => {
     function double<R extends Rheon<number>>(rheon: R): Rheon.Infer<R> {
-      Rheon.write(rheon, (v) => v * 2)
+      Rheon.write(rheon, v => v * 2)
 
       return Rheon.read(rheon) as Rheon.Infer<R>
     }

@@ -163,8 +163,8 @@ describe('Agora', () => {
       const agora = Agora.create<string>()
       const received: string[] = []
 
-      Agora.listen(agora, (msg) => received.push(msg))
-      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.listen(agora, msg => received.push(msg))
+      Agora.listen(agora, msg => received.push(msg))
 
       Agora.publish(agora, 'hello')
 
@@ -202,7 +202,7 @@ describe('Agora', () => {
       Agora.listen(agora, () => {
         throw new Error('boom')
       })
-      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.listen(agora, msg => received.push(msg))
 
       Agora.publish(agora, 'test')
 
@@ -278,7 +278,7 @@ describe('Agora', () => {
       const agora = Agora.create<string>()
       const received: string[] = []
 
-      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.listen(agora, msg => received.push(msg))
       Agora.register(agora, 'first')
       Agora.register(agora, 'second')
 
@@ -292,8 +292,8 @@ describe('Agora', () => {
       const agora = Agora.create<number>()
       const calls: [string, number][] = []
 
-      Agora.listen(agora, (n) => calls.push(['a', n]))
-      Agora.listen(agora, (n) => calls.push(['b', n]))
+      Agora.listen(agora, n => calls.push(['a', n]))
+      Agora.listen(agora, n => calls.push(['b', n]))
       Agora.register(agora, 1)
       Agora.register(agora, 2)
 
@@ -495,7 +495,7 @@ describe('Agora', () => {
       const agora = Agora.create<string>()
       const received: string[] = []
 
-      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.listen(agora, msg => received.push(msg))
       Agora.freeze(agora)
       Agora.unfreeze(agora)
 
@@ -509,7 +509,7 @@ describe('Agora', () => {
       const agora = Agora.create<string>()
       const received: string[] = []
 
-      Agora.listen(agora, (msg) => received.push(msg))
+      Agora.listen(agora, msg => received.push(msg))
       Agora.register(agora, 'queued')
       Agora.freeze(agora)
       Agora.unfreeze(agora)

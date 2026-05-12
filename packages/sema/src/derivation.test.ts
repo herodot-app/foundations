@@ -23,7 +23,7 @@ describe('Derivation', () => {
       const source = Sema.create({ count: 0 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.count,
+        selector: s => s.count,
       })
 
       expect(Derivation.is(derived)).toBe(true)
@@ -46,7 +46,7 @@ describe('Derivation', () => {
       const source = Sema.create({ count: 0 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.count,
+        selector: s => s.count,
       })
 
       expect(derived.selector).toBeDefined()
@@ -59,7 +59,7 @@ describe('Derivation', () => {
       const source = Sema.create({ x: 1 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.x,
+        selector: s => s.x,
       })
 
       expect(Idion.is(derived, Derivation.identifier)).toBe(true)
@@ -69,7 +69,7 @@ describe('Derivation', () => {
       const source = Sema.create({ count: 42 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.count,
+        selector: s => s.count,
       })
 
       expect(Sema.read(derived)).toBe(42)
@@ -79,7 +79,7 @@ describe('Derivation', () => {
       const source = Sema.create({ count: 0 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.count,
+        selector: s => s.count,
       })
 
       expect(Sema.is(derived)).toBe(true)
@@ -97,7 +97,7 @@ describe('Derivation', () => {
       const source = Sema.create(0)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n,
+        selector: n => n,
       })
 
       expect(derived.sema).toBe(source)
@@ -107,7 +107,7 @@ describe('Derivation', () => {
       const source = Sema.create({ x: 1 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.x,
+        selector: s => s.x,
       })
 
       expect(derived.equality).toBe(Equality.check)
@@ -118,7 +118,7 @@ describe('Derivation', () => {
       const customEquality: Equality<number, number> = (a, b) => a === b
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.x,
+        selector: s => s.x,
         equality: customEquality,
       })
 
@@ -129,7 +129,7 @@ describe('Derivation', () => {
       const source = Sema.create({ x: 1 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.x,
+        selector: s => s.x,
       })
 
       expect(typeof derived.unbind).toBe('function')
@@ -139,7 +139,7 @@ describe('Derivation', () => {
       const source = Sema.create({ count: 0 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.count,
+        selector: s => s.count,
       })
 
       expect(Sema.read(derived)).toBe(0)
@@ -153,7 +153,7 @@ describe('Derivation', () => {
       const source = Sema.create({ user: { name: 'Alice' } })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.user.name,
+        selector: s => s.user.name,
       })
 
       Sema.write(source, { user: { name: 'Bob' } })
@@ -165,7 +165,7 @@ describe('Derivation', () => {
       const source = Sema.create(42)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n,
+        selector: n => n,
       })
 
       expect(Sema.read(derived)).toBe(42)
@@ -193,11 +193,11 @@ describe('Derivation', () => {
       const source = Sema.create({ count: 0, name: 'Alice' })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.count,
+        selector: s => s.count,
       })
       const received: number[] = []
 
-      Agora.listen(derived, (v) => received.push(v))
+      Agora.listen(derived, v => received.push(v))
 
       Sema.write(source, { count: 0, name: 'Bob' })
 
@@ -208,11 +208,11 @@ describe('Derivation', () => {
       const source = Sema.create({ count: 0 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s.count,
+        selector: s => s.count,
       })
       const received: number[] = []
 
-      Agora.listen(derived, (v) => received.push(v))
+      Agora.listen(derived, v => received.push(v))
       Sema.write(source, { count: 1 })
 
       expect(received).toEqual([1])
@@ -222,7 +222,7 @@ describe('Derivation', () => {
       const source = Sema.create({ id: 1, name: 'Alice' })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s,
+        selector: s => s,
         equality: (a, b) => a.id === b.id,
       })
       const received: number[] = []
@@ -237,7 +237,7 @@ describe('Derivation', () => {
       const source = Sema.create({ id: 1 })
       const derived = Derivation.create({
         sema: source,
-        selector: (s) => s,
+        selector: s => s,
         equality: (a, b) => a.id === b.id,
       })
       const received: number[] = []
@@ -252,11 +252,11 @@ describe('Derivation', () => {
       const source = Sema.create({ x: 1, y: 2 })
       const derivedA = Derivation.create({
         sema: source,
-        selector: (s) => s.x + s.y,
+        selector: s => s.x + s.y,
       })
       const derivedB = Derivation.create({
         sema: derivedA,
-        selector: (n) => n * 2,
+        selector: n => n * 2,
       })
 
       expect(Sema.read(derivedB)).toBe(6)
@@ -271,11 +271,11 @@ describe('Derivation', () => {
       const source = Sema.create(0)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n * 10,
+        selector: n => n * 10,
       })
       const received: number[] = []
 
-      Agora.listen(derived, (v) => received.push(v))
+      Agora.listen(derived, v => received.push(v))
       Sema.write(source, 1)
       Sema.write(source, 2)
       Sema.write(source, 3)
@@ -287,7 +287,7 @@ describe('Derivation', () => {
       const source = Sema.create(0)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n,
+        selector: n => n,
       })
 
       expect(derived.frozenRef).toBe(source.frozenRef)
@@ -299,7 +299,7 @@ describe('Derivation', () => {
       const source = Sema.create(0)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n * 2,
+        selector: n => n * 2,
       })
 
       expect(Sema.read(derived)).toBe(0)
@@ -319,7 +319,7 @@ describe('Derivation', () => {
       const source = Sema.create(0)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n,
+        selector: n => n,
       })
 
       Derivation.unbind(derived)
@@ -334,7 +334,7 @@ describe('Derivation', () => {
       const source = Sema.create(0)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n,
+        selector: n => n,
       })
       let callCount = 0
 
@@ -351,11 +351,11 @@ describe('Derivation', () => {
       const source = Sema.create(0)
       const derived = Derivation.create({
         sema: source,
-        selector: (n) => n,
+        selector: n => n,
       })
       const sourceReceived: number[] = []
 
-      Agora.listen(source, (v) => sourceReceived.push(v))
+      Agora.listen(source, v => sourceReceived.push(v))
       Derivation.unbind(derived)
       Sema.write(source, 1)
       Sema.write(source, 2)

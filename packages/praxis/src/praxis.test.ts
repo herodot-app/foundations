@@ -27,7 +27,7 @@ describe('Praxis', () => {
     })
 
     it('creates a Praxis that can be piped', async () => {
-      const praxis = Praxis.create((x: number) => x * 2).pipe((result) => {
+      const praxis = Praxis.create((x: number) => x * 2).pipe(result => {
         if (Zygon.isLeft(result)) {
           return result.left + 10
         }
@@ -53,7 +53,7 @@ describe('Praxis', () => {
 
   describe('Praxis.pipe', () => {
     it('chains a function onto the praxis', async () => {
-      const praxis = Praxis.create((x: number) => x + 1).pipe((result) =>
+      const praxis = Praxis.create((x: number) => x + 1).pipe(result =>
         result.left ? result.left * 2 : result,
       )
 
@@ -65,7 +65,7 @@ describe('Praxis', () => {
 
     it('preserves input type through pipe', async () => {
       const praxis = Praxis.create((x: string) => x.toUpperCase()).pipe(
-        (result) => (result.left ? result.left.length : result),
+        result => (result.left ? result.left.length : result),
       )
 
       const result = await praxis.run('hello')
@@ -75,13 +75,11 @@ describe('Praxis', () => {
     })
 
     it('handles async piped functions', async () => {
-      const praxis = Praxis.create((x: number) => x * 2).pipe(
-        async (result) => {
-          await Promise.resolve()
+      const praxis = Praxis.create((x: number) => x * 2).pipe(async result => {
+        await Promise.resolve()
 
-          return result.left ? result.left + 100 : result
-        },
-      )
+        return result.left ? result.left + 100 : result
+      })
 
       const result = await praxis.run(5)
 
@@ -101,9 +99,9 @@ describe('Praxis', () => {
 
     it('can chain multiple pipes', async () => {
       const praxis = Praxis.create((x: number) => x)
-        .pipe((result) => (result.left ? result.left + 1 : result))
-        .pipe((result) => (result.left ? result.left * 2 : result))
-        .pipe((result) => (result.left ? result.left + 10 : result))
+        .pipe(result => (result.left ? result.left + 1 : result))
+        .pipe(result => (result.left ? result.left * 2 : result))
+        .pipe(result => (result.left ? result.left + 10 : result))
 
       const result = await Task.run(praxis.task, 5)
 
@@ -114,7 +112,7 @@ describe('Praxis', () => {
     it('passes through Right values from the original task', async () => {
       const praxis = Praxis.create(() => {
         throw new Error('original error')
-      }).pipe((result) => {
+      }).pipe(result => {
         if (Zygon.isLeft(result)) {
           return result.left * 2
         }
@@ -131,7 +129,7 @@ describe('Praxis', () => {
   describe('Praxis.chain', () => {
     it('transforms Left values from the praxis', async () => {
       const praxis = Praxis.create((x: number) => x + 1).chain(
-        (value) => value * 2,
+        value => value * 2,
       )
 
       const result = await praxis.run(10)
@@ -143,7 +141,7 @@ describe('Praxis', () => {
     it('stops chain on Right values', async () => {
       const praxis = Praxis.create(() => {
         throw new Error('chain error')
-      }).chain((value) => value * 2)
+      }).chain(value => value * 2)
 
       const result = await praxis.run()
 
@@ -152,7 +150,7 @@ describe('Praxis', () => {
 
     it('preserves input type through chain', async () => {
       const praxis = Praxis.create((x: string) => x.toUpperCase()).chain(
-        (value) => value.length,
+        value => value.length,
       )
 
       const result = await praxis.run('hello')
@@ -162,12 +160,10 @@ describe('Praxis', () => {
     })
 
     it('handles async chain functions', async () => {
-      const praxis = Praxis.create((x: number) => x * 2).chain(
-        async (value) => {
-          await Promise.resolve()
-          return value + 100
-        },
-      )
+      const praxis = Praxis.create((x: number) => x * 2).chain(async value => {
+        await Promise.resolve()
+        return value + 100
+      })
 
       const result = await praxis.run(5)
 
@@ -177,9 +173,9 @@ describe('Praxis', () => {
 
     it('can chain multiple times', async () => {
       const praxis = Praxis.create((x: number) => x)
-        .chain((value) => value + 1)
-        .chain((value) => value * 2)
-        .chain((value) => value + 10)
+        .chain(value => value + 1)
+        .chain(value => value * 2)
+        .chain(value => value + 10)
 
       const result = await praxis.run(5)
 
@@ -189,9 +185,9 @@ describe('Praxis', () => {
 
     it('can mix chain and pipe', async () => {
       const praxis = Praxis.create((x: number) => x)
-        .chain((value) => value + 1)
-        .pipe((result) => (result.left ? result.left * 2 : result))
-        .chain((value) => value + 10)
+        .chain(value => value + 1)
+        .pipe(result => (result.left ? result.left * 2 : result))
+        .chain(value => value + 10)
 
       const result = await praxis.run(5)
 
