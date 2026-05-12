@@ -270,4 +270,88 @@ describe('Praxis', () => {
       expect(result.right).toBe(4)
     })
   })
+
+  describe('Praxis.recover', () => {
+    it('transforms Right values into Left values', async () => {
+      const praxis = Praxis.create(() =>
+        Zygon.right(new Error('error')),
+      ).recover(error => (error instanceof Error ? error.message : 'unknown'))
+
+      const result = await praxis.run()
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe('error')
+    })
+
+    it('stops recover on Left values', async () => {
+      const praxis = Praxis.create((x: number) => x * 2).recover(
+        () => 'recovered',
+      )
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+    })
+
+    it('handles async recover functions', async () => {
+      const praxis = Praxis.create(() =>
+        Zygon.right(new Error('async error')),
+      ).recover(async error => {
+        await Promise.resolve()
+
+        return error instanceof Error ? error.message.toUpperCase() : 'UNKNOWN'
+      })
+
+      const result = await praxis.run()
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe('ASYNC ERROR')
+    })
+
+    it('can recover multiple times', async () => {
+      const praxis = Praxis.create(() => Zygon.right(new Error('hello')))
+        .recover(error => error.message)
+        .recover(err => err.message.length)
+
+      const result = await praxis.run()
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe('hello')
+    })
+
+    it('can mix chain and recover', async () => {
+      const praxis = Praxis.create((n: number) => n)
+        .chain(value => value + 1)
+        .recover(() => 10)
+        .chain(value => value * 2)
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(12)
+    })
+
+    it('can mix pipe with recover', async () => {
+      const praxis = Praxis.create(() => Zygon.right(new Error('nope')))
+        .recover(error => (error instanceof Error ? error.message : 'unknown'))
+        .pipe(result => (result.left ? result.left.toUpperCase() : result))
+
+      const result = await praxis.run()
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe('NOPE')
+    })
+
+    it('can mix chainRight with recover', async () => {
+      const praxis = Praxis.create((n: number) => Zygon.right(n * 2))
+        .chainRight(val => (val instanceof Error ? 0 : Zygon.right(val + 10)))
+        .recover(error => `Number is ${error}`)
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(`Number is 20`)
+    })
+  })
 })
