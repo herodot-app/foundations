@@ -354,4 +354,86 @@ describe('Praxis', () => {
       expect(result.left).toBe(`Number is 20`)
     })
   })
+
+  describe('Praxis.merge', () => {
+    it('merges with another praxis on Left values', async () => {
+      const praxis = Praxis.create((x: number) => x + 1).merge(() =>
+        Praxis.create((y: number) => y * 2),
+      )
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(22)
+    })
+
+    it('stops merge on Right values', async () => {
+      const praxis = Praxis.create(() => {
+        throw new Error('original error')
+      }).merge(() => Praxis.create(() => 100))
+
+      const result = await praxis.run()
+
+      expect(Zygon.isRight(result)).toBe(true)
+    })
+
+    it('handles async merge functions', async () => {
+      const praxis = Praxis.create((x: number) => x + 1).merge(async () => {
+        await Promise.resolve()
+
+        return Praxis.create((y: number) => y + 100)
+      })
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(111)
+    })
+
+    it('can merge multiple times', async () => {
+      const praxis = Praxis.create((x: number) => x + 1)
+        .merge(() => Praxis.create((y: number) => y + 10))
+        .merge(() => Praxis.create((z: number) => z * 2))
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(32)
+    })
+
+    it('can mix chain and merge', async () => {
+      const praxis = Praxis.create((x: number) => x)
+        .chain(value => value + 1)
+        .merge(() => Praxis.create(value => value * 2))
+        .chain(value => value + 10)
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(22)
+    })
+
+    it('can mix pipe with merge', async () => {
+      const praxis = Praxis.create((x: number) => x)
+        .pipe(result => (result.left ? result.left + 1 : result))
+        .merge(() => Praxis.create((y: number) => y * 3))
+        .pipe(result => (result.left ? result.left + 5 : result))
+
+      const result = await praxis.run(10)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(38)
+    })
+
+    it('inherits task properties from merged praxis', async () => {
+      const outer = Praxis.create((x: number) => x * 2)
+      const inner = Praxis.create((y: number) => y + 10)
+      const praxis = outer.merge(() => inner)
+
+      const result = await praxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+    })
+  })
 })

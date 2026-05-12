@@ -121,6 +121,38 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     >
   }
 
+  merge<L2 = unknown, R2 = unknown>(
+    runner: Task.RawRun<
+      Zygon.LiftLeft<L>,
+      Praxis<L, L2, R2> | Promise<Praxis<L, L2, R2>>
+    >,
+  ): Praxis<
+    I,
+    Zygon.LiftLeft<L2>,
+    R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
+  > {
+    const newTask = Task.create({
+      run: async (input?: I) => {
+        // biome-ignore lint: unable to infer the input correctly here
+        const result = await (Task.run as any)(this.task, input)
+
+        if (Zygon.isRight(result)) return result
+
+        const otherPraxis = await Promise.resolve(runner(result.left))
+
+        this.inherit(otherPraxis.task)
+
+        return (otherPraxis.run as any)(result.left)
+      },
+    })
+
+    return new Praxis(this.inherit(newTask)) as unknown as Praxis<
+      I,
+      Zygon.LiftLeft<L2>,
+      R | R2 | Zygon.LiftRight<L2> | Zygon.LiftRight<L>
+    >
+  }
+
   run(
     ...inputs: Task.InferRunInput<I>
   ): Promise<Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>> {
@@ -130,7 +162,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
     return (Task.run as any)(this.task, input)
   }
 
-  private inherit<I2 = undefined, L2 = unknown, R2 = Task.RuntimePtoma>(
+  inherit<I2 = undefined, L2 = unknown, R2 = Task.RuntimePtoma>(
     task: Task<I2, L2, R2>,
   ): Task<I2, L2, R2> {
     task.externalRef = this.task.externalRef
