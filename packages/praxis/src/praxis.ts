@@ -1,6 +1,6 @@
+import { Rheon } from '@herodot-app/rheon'
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
-import { Rheon } from '@herodot-app/rheon'
 
 export class Praxis<I = undefined, L = unknown, R = Task.RuntimePtoma> {
   static create<I = undefined, L = unknown, R = Task.RuntimePtoma>(

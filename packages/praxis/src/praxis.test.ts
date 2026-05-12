@@ -857,6 +857,7 @@ describe('Praxis', () => {
 
       expect(Zygon.isRight(result)).toBe(true)
       expect(result.right).toBeInstanceOf(Task.RuntimePtoma)
+      // biome-ignore lint: any is fine here
       expect(Task.RuntimePtoma.isAborted(result.right as any)).toBe(false)
     })
 
