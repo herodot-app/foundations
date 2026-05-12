@@ -141,3 +141,21 @@ describe('Ptoma.is', () => {
     }
   })
 })
+
+describe('Ptoma.match', () => {
+  class SomeFailure extends Ptoma.create('some-failure') {}
+  class OtherFailure extends Ptoma.create('other-failure') {}
+
+  it('matches a given ptoma instance', () => {
+    expect(Ptoma.match('john', SomeFailure)).toBe(false)
+    expect(Ptoma.match('john', OtherFailure)).toBe(false)
+
+    expect(Ptoma.match(new Error('oops'), SomeFailure)).toBe(false)
+    expect(Ptoma.match(new Error('oops'), OtherFailure)).toBe(false)
+
+    const err = new SomeFailure('oopsy')
+
+    expect(Ptoma.match(err, SomeFailure)).toBe(true)
+    expect(Ptoma.match(err, OtherFailure)).toBe(false)
+  })
+})

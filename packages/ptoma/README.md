@@ -36,7 +36,7 @@ Ptoma solves this with two things:
 Everything else — stack traces, `instanceof Error`, `catch (err)`, `err.cause` — works exactly as you would expect, because a `Ptoma` is a real `Error`. It just knows who it is.
 
 ```ts
-const NotFound = Ptoma.create<'NotFound', { id: string }>('NotFound')
+class NotFound extends Ptoma.create<'NotFound', { id: string }>('NotFound') {}
 
 throw new NotFound('User not found', { id: '42' })
 
@@ -87,12 +87,12 @@ Call `Ptoma.create` once at module level, export the result. The type parameters
 import { Ptoma } from '@herodot-app/ptoma'
 
 // No payload — the name is enough
-export const Unauthorized = Ptoma.create<'Unauthorized'>('Unauthorized')
+export class Unauthorized extends Ptoma.create<'Unauthorized'>('Unauthorized') {}
 
 // With a typed payload
-export const NotFound = Ptoma.create<'NotFound', { id: string }>('NotFound')
-export const RateLimited = Ptoma.create<'RateLimited', { retryAfter: number }>('RateLimited')
-export const ValidationFailed = Ptoma.create<'ValidationFailed', { fields: string[] }>('ValidationFailed')
+export class NotFound extends Ptoma.create<'NotFound', { id: string }>('NotFound') {}
+export class RateLimited extends Ptoma.create<'RateLimited', { retryAfter: number }>('RateLimited') {}
+export class ValidationFailed extends Ptoma.create<'ValidationFailed', { fields: string[] }>('ValidationFailed') {}
 ```
 
 You get a constructor back — use it like any other `Error` class.
@@ -189,7 +189,7 @@ A `Ptoma` is a real `Error` — it has a `message`, a `stack`, and a `cause`. On
 Creates a new error class for the given name. Returns a typed constructor.
 
 ```ts
-const NotFound = Ptoma.create<'NotFound', { id: string }>('NotFound')
+class NotFound extends Ptoma.create<'NotFound', { id: string }>('NotFound') {}
 //    ^? Ptoma.Constructor<'NotFound', { id: string }>
 
 const err = new NotFound('not found', { id: '42' })
@@ -216,6 +216,29 @@ if (Ptoma.is<'NotFound', { id: string }>(err, 'NotFound')) {
 ```
 
 Returns `false` for any non-Ptoma value, including plain `Error` instances. The check is symbol-based — immune to name collisions, cross-realm issues, and whatever creative things bundlers get up to.
+
+### `Ptoma.match(subject, SubjectClass)`
+
+Type guard that checks whether `subject` is an instance of a specific Ptoma subclass.
+
+While `Ptoma.is` checks by name string, `match` checks against a concrete error class — useful when you have multiple error classes and need precise type narrowing:
+
+```ts
+class DatabaseError extends Ptoma.create<'DatabaseError', { table: string }>('DatabaseError') {}
+class NetworkError extends Ptoma.create<'NetworkError', { code: number }>('NetworkError') {}
+
+function handleError(err: unknown) {
+  if (Ptoma.match(err, DatabaseError)) {
+    // err is DatabaseError ✅
+    console.log(`Failed on table: ${err.payload.table}`)
+  } else if (Ptoma.match(err, NetworkError)) {
+    // err is NetworkError ✅
+    console.log(`Network error: ${err.payload.code}`)
+  }
+}
+```
+
+Combines both the Ptoma brand check (`Ptoma.is`) and `instanceof` — so you get type safety from the brand and precise subclass discrimination from the prototype chain.
 
 ### `Ptoma.Constructor<N, P>`
 

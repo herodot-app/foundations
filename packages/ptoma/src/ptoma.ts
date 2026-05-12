@@ -223,4 +223,78 @@ export namespace Ptoma {
 
     return true
   }
+
+  /**
+   * Type guard that checks whether an unknown value is an instance of a specific
+   * {@link Ptoma} subclass.
+   *
+   * While {@link is} checks for any Ptoma or a Ptoma by name string, `match`
+   * checks against a concrete Ptoma subclass constructor — useful when you've
+   * defined multiple error classes and want to discriminate between them at the
+   * type level.
+   *
+   * ```ts
+   * // Define specific error classes
+   * class DatabaseError extends Ptoma.create<'DatabaseError', { table: string }>('DatabaseError') {}
+   * class NetworkError extends Ptoma.create<'NetworkError', { code: number }>('NetworkError') {}
+   *
+   * function handleError(err: unknown) {
+   *   if (Ptoma.match(err, DatabaseError)) {
+   *     // err is typed as DatabaseError ✅
+   *     console.log(`Failed on table: ${err.payload.table}`)
+   *   } else if (Ptoma.match(err, NetworkError)) {
+   *     // err is typed as NetworkError ✅
+   *     console.log(`Network error code: ${err.payload.code}`)
+   *   } else {
+   *     // err is unknown - could be a different Ptoma or a plain Error
+   *     throw err
+   *   }
+   * }
+   * ```
+   *
+   * **Why not just use `instanceof`?**
+   *
+   * JavaScript's `instanceof` checks the prototype chain, but it doesn't know
+   * about Ptoma's branding. Without the {@link is} check, any object that happens
+   * to inherit from Error could slip through. `match` combines both checks:
+   *
+   * 1. First verifies it's a genuine Ptoma via {@link is} (the brand check)
+   * 2. Then verifies it's an instance of the specific subclass (the prototype check)
+   *
+   * This gives you the best of both worlds: type safety from the brand, and
+   * precise subclass discrimination from `instanceof`.
+   *
+   * @typeParam I - The Ptoma subclass constructor to match against.
+   * @param subject - The value to inspect. Can be any unknown value.
+   * @param SubjectClass - The Ptoma subclass constructor to test against.
+   * @returns `true` if `subject` is both a valid Ptoma and an instance of `SubjectClass`,
+   *   narrowing its type to that specific subclass.
+   *
+   * @example
+   * ```ts
+   * // Using match in a catch block with exhaustiveness checking
+   * try {
+   *   await riskyOperation()
+   * } catch (err) {
+   *   if (Ptoma.match(err, DatabaseError)) {
+   *     return { type: 'db', detail: err.payload.table }
+   *   }
+   *   if (Ptoma.match(err, NetworkError)) {
+   *     return { type: 'net', detail: err.payload.code }
+   *   }
+   *   // Runtime safety: if we add new Ptoma subclasses, this branch
+   *   // will cause a TypeScript error until handled
+   *   return { type: 'unknown', detail: String(err) }
+   * }
+   * ```
+   */
+  export function match<
+    I extends new (
+      // biome-ignore lint: we don't ware about entry args here
+      ...args: any[]
+      // biome-ignore lint: we don't ware about ptoma inference here
+    ) => Ptoma<any, any>,
+  >(subject: unknown, SubjectClass: I): subject is InstanceType<I> {
+    return is(subject) && subject instanceof SubjectClass
+  }
 }
