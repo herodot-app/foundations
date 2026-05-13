@@ -3,11 +3,12 @@ import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
+import { Rheon } from '@herodot-app/rheon'
 
 describe('Task', () => {
   describe('Task.create', () => {
     it('creates a task from a synchronous function that succeeds', async () => {
-      const task = Task.create({ run: (x: number) => x * 2 })
+      const task = Task.create({ runner: (x: number) => x * 2 })
 
       const result = await Task.run(task, 21)
 
@@ -17,7 +18,7 @@ describe('Task', () => {
 
     it('creates a task from a synchronous function that throws', async () => {
       const task = Task.create({
-        run: (_x: number) => {
+        runner: (_x: number) => {
           throw new Error('fail')
         },
       })
@@ -31,7 +32,7 @@ describe('Task', () => {
 
     it('creates a task from an async function', async () => {
       const task = Task.create({
-        run: async (x: number) => {
+        runner: async (x: number) => {
           await Promise.resolve()
 
           return x + 1
@@ -46,7 +47,7 @@ describe('Task', () => {
 
     it('preserves a Zygon returned from the raw function', async () => {
       const task = Task.create({
-        run: (_x: number) => {
+        runner: (_x: number) => {
           return Zygon.right(new Error('expected failure'))
         },
       })
@@ -57,7 +58,7 @@ describe('Task', () => {
     })
 
     it('handles optional input for undefined input type', async () => {
-      const task = Task.create({ run: () => 42 })
+      const task = Task.create({ runner: () => 42 })
 
       const result = await Task.run(task)
 
@@ -68,7 +69,7 @@ describe('Task', () => {
 
   describe('Task.run', () => {
     it('runs a task and lifts the result on success', async () => {
-      const task = Task.create({ run: (x: number) => x * 2 })
+      const task = Task.create({ runner: (x: number) => x * 2 })
 
       const result = await Task.run(task, 21)
 
@@ -78,7 +79,7 @@ describe('Task', () => {
 
     it('runs a task and lifts the result on failure', async () => {
       const task = Task.create({
-        run: (_x: number) => {
+        runner: (_x: number) => {
           throw new Error('fail')
         },
       })
@@ -91,7 +92,7 @@ describe('Task', () => {
 
     it('lifts nested Zygon results', async () => {
       const task = Task.create({
-        run: (_x: number) => {
+        runner: (_x: number) => {
           return Zygon.left(Zygon.left(42))
         },
       })
@@ -104,7 +105,7 @@ describe('Task', () => {
 
     it('lifts nested Zygon failure results', async () => {
       const task = Task.create({
-        run: (_x: number) => {
+        runner: (_x: number) => {
           return Zygon.right(Zygon.right(new Error('nested fail')))
         },
       })
@@ -118,13 +119,13 @@ describe('Task', () => {
 
   describe('Task branding', () => {
     it('creates a branded task', () => {
-      const task = Task.create({ run: (x: number) => x })
+      const task = Task.create({ runner: (x: number) => x })
 
       expect(Idion.is(task, Task.identifier)).toBe(true)
     })
 
     it('can distinguish between tasks and plain objects', () => {
-      const task = Task.create({ run: (x: number) => x })
+      const task = Task.create({ runner: (x: number) => x })
       const notTask = { runner: () => Promise.resolve(Zygon.left(42)) }
 
       expect(Idion.is(task, Task.identifier)).toBe(true)
@@ -134,64 +135,47 @@ describe('Task', () => {
 
   describe('Task.abort', () => {
     it('aborts a task and sets the signal to aborted', () => {
-      const task = Task.create({ run: () => 42 })
+      const task = Task.create({ runner: () => 42 })
 
-      expect(Task.aborted(task)).toBe(false)
+      expect(Task.isAborted(task)).toBe(false)
 
       Task.abort(task)
 
-      expect(Task.aborted(task)).toBe(true)
+      expect(Task.isAborted(task)).toBe(true)
     })
 
     it('aborts a task with a custom reason', () => {
-      const task = Task.create({ run: () => 42 })
+      const task = Task.create({ runner: () => 42 })
 
       Task.abort(task, 'timeout')
 
-      expect(Task.aborted(task)).toBe(true)
-      expect(Task.controller(task).signal.reason).toBe('timeout')
+      expect(Task.isAborted(task)).toBe(true)
+      expect(Rheon.read(task.controllerRef).signal.reason.message).toBe(
+        'timeout',
+      )
     })
   })
 
   describe('Task.aborted', () => {
     it('returns false for a task that has not been aborted', () => {
-      const task = Task.create({ run: () => 42 })
+      const task = Task.create({ runner: () => 42 })
 
-      expect(Task.aborted(task)).toBe(false)
+      expect(Task.isAborted(task)).toBe(false)
     })
 
     it('returns true for a task that has been aborted', () => {
-      const task = Task.create({ run: () => 42 })
+      const task = Task.create({ runner: () => 42 })
 
       Task.abort(task)
 
-      expect(Task.aborted(task)).toBe(true)
-    })
-  })
-
-  describe('Task.controller', () => {
-    it('returns the AbortController for a task', () => {
-      const task = Task.create({ run: () => 42 })
-      const controller = Task.controller(task)
-
-      expect(controller).toBeInstanceOf(AbortController)
-      expect(controller.signal.aborted).toBe(false)
-    })
-
-    it('returns the same controller reference on subsequent calls', () => {
-      const task = Task.create({ run: () => 42 })
-
-      const controller1 = Task.controller(task)
-      const controller2 = Task.controller(task)
-
-      expect(controller1).toBe(controller2)
+      expect(Task.isAborted(task)).toBe(true)
     })
   })
 
   describe('Task abort during run', () => {
     it('returns an aborted RuntimePtoma when task is aborted during execution', async () => {
       const task = Task.create({
-        run: async () => {
+        runner: async () => {
           Task.abort(task, 'interrupted')
 
           await Promise.resolve()
@@ -208,7 +192,7 @@ describe('Task', () => {
 
     it('preserves the abort reason when aborted during execution', async () => {
       const task = Task.create({
-        run: async () => {
+        runner: async () => {
           Task.abort(task, 'timeout exceeded')
 
           await Promise.resolve()
@@ -231,7 +215,7 @@ describe('Task', () => {
       })
 
       const task = Task.create({
-        run: async () => {
+        runner: async () => {
           await blocker
 
           return 'completed'
@@ -253,7 +237,7 @@ describe('Task', () => {
     })
 
     it('succeeds when not aborted', async () => {
-      const task = Task.create({ run: () => 'success' })
+      const task = Task.create({ runner: () => 'success' })
 
       const result = await Task.run(task)
 
@@ -262,142 +246,131 @@ describe('Task', () => {
     })
   })
 
-  describe('Task.isInternal', () => {
-    it('returns true for a newly created task (neutral state)', () => {
-      const task = Task.create({ run: () => 42 })
+  describe('Task.link', () => {
+    it('aborts second task when first is aborted', async () => {
+      const first = Task.create({ runner: () => 'first' })
+      const second = Task.create({ runner: () => 'second' })
 
-      expect(Task.isInternal(task)).toBe(true)
+      Task.link(first, second)
+
+      Task.abort(first, 'first aborted')
+
+      expect(Task.isAborted(first)).toBe(true)
+      expect(Task.isAborted(second)).toBe(true)
     })
 
-    it('returns true after internalized is called', () => {
-      const task = Task.create({ run: () => 42 })
+    it('aborts first task when second is aborted', async () => {
+      const first = Task.create({ runner: () => 'first' })
+      const second = Task.create({ runner: () => 'second' })
 
-      Task.internalized(task)
+      Task.link(first, second)
 
-      expect(Task.isInternal(task)).toBe(true)
+      Task.abort(second, 'second aborted')
+
+      expect(Task.isAborted(first)).toBe(true)
+      expect(Task.isAborted(second)).toBe(true)
     })
 
-    it('returns false after externalized is called', () => {
-      const task = Task.create({ run: () => 42 })
+    it('returns a cleanup function that unlinks the tasks', () => {
+      const first = Task.create({ runner: () => 'first' })
+      const second = Task.create({ runner: () => 'second' })
 
-      Task.externalized(task)
+      const unlink = Task.link(first, second)
 
-      expect(Task.isInternal(task)).toBe(false)
+      unlink()
+
+      Task.abort(first)
+
+      expect(Task.isAborted(first)).toBe(true)
+      expect(Task.isAborted(second)).toBe(false)
     })
 
-    it('returns false after internalized then externalized', () => {
-      const task = Task.create({ run: () => 42 })
+    it('does not propagate abort after unlinking', () => {
+      const first = Task.create({ runner: () => 'first' })
+      const second = Task.create({ runner: () => 'second' })
 
-      Task.internalized(task)
-      Task.externalized(task)
+      const unlink = Task.link(first, second)
+      unlink()
 
-      expect(Task.isInternal(task)).toBe(false)
-    })
-  })
+      Task.abort(first, 'test')
+      Task.abort(second, 'test')
 
-  describe('Task.isExternal', () => {
-    it('returns false for a newly created task (neutral state)', () => {
-      const task = Task.create({ run: () => 42 })
-
-      expect(Task.isExternal(task)).toBe(false)
-    })
-
-    it('returns true after externalized is called', () => {
-      const task = Task.create({ run: () => 42 })
-
-      Task.externalized(task)
-
-      expect(Task.isExternal(task)).toBe(true)
-    })
-
-    it('returns false after internalized is called', () => {
-      const task = Task.create({ run: () => 42 })
-
-      Task.internalized(task)
-
-      expect(Task.isExternal(task)).toBe(false)
-    })
-
-    it('returns true after externalized then internalized then externalized', () => {
-      const task = Task.create({ run: () => 42 })
-
-      Task.externalized(task)
-      Task.internalized(task)
-      Task.externalized(task)
-
-      expect(Task.isExternal(task)).toBe(true)
+      expect(Task.isAborted(first)).toBe(true)
+      expect(Task.isAborted(second)).toBe(true)
     })
   })
 
-  describe('Task.internalized', () => {
-    it('marks a task as internal', () => {
-      const task = Task.create({ run: () => 42 })
+  describe('Task.create linkedTo option', () => {
+    it('automatically links task to another task on creation', () => {
+      const parent = Task.create({ runner: () => 'parent' })
+      const child = Task.create({ runner: () => 'child', linkedTo: parent })
 
-      Task.internalized(task)
+      Task.abort(parent, 'parent aborted')
 
-      expect(Task.isInternal(task)).toBe(true)
-      expect(Task.isExternal(task)).toBe(false)
-    })
-  })
-
-  describe('Task.externalized', () => {
-    it('marks a task as external', () => {
-      const task = Task.create({ run: () => 42 })
-
-      Task.externalized(task)
-
-      expect(Task.isExternal(task)).toBe(true)
-      expect(Task.isInternal(task)).toBe(false)
+      expect(Task.isAborted(parent)).toBe(true)
+      expect(Task.isAborted(child)).toBe(true)
     })
 
-    it('uses the AbortController provided in Task.create when running', async () => {
-      const controller = new AbortController()
-      const task = Task.create({
-        run: () => 42,
-        controller,
+    it('aborts parent when linked child is aborted', () => {
+      const parent = Task.create({ runner: () => 'parent' })
+      const child = Task.create({ runner: () => 'child', linkedTo: parent })
+
+      Task.abort(child, 'child aborted')
+
+      expect(Task.isAborted(parent)).toBe(true)
+      expect(Task.isAborted(child)).toBe(true)
+    })
+
+    it('allows running linked tasks without immediate abort', async () => {
+      const parent = Task.create({ runner: () => 'parent' })
+      const child = Task.create({ runner: () => 'child', linkedTo: parent })
+
+      const parentResult = await Task.run(parent)
+      const childResult = await Task.run(child)
+
+      expect(Zygon.isLeft(parentResult)).toBe(true)
+      expect(Zygon.isLeft(childResult)).toBe(true)
+      expect(parentResult.left).toBe('parent')
+      expect(childResult.left).toBe('child')
+    })
+
+    it('aborts child task when parent aborts during execution', async () => {
+      let resolveBlocker: () => void
+
+      const blocker = new Promise<void>(resolve => {
+        resolveBlocker = resolve
       })
 
-      Task.externalized(task)
-
-      const controllerBeforeRun = Task.controller(task)
-
-      await Task.run(task)
-
-      const controllerAfterRun = Task.controller(task)
-
-      expect(controllerBeforeRun).toBe(controller)
-      expect(controllerAfterRun).toBe(controller)
-    })
-
-    it('does not create a new AbortController when running an external task', async () => {
-      const controller = new AbortController()
-      const task = Task.create({
-        run: () => 42,
-        controller,
+      const parent = Task.create({
+        runner: async () => {
+          await blocker
+          return 'parent'
+        },
       })
 
-      Task.externalized(task)
-
-      await Task.run(task)
-
-      expect(Task.controller(task)).toBe(controller)
-    })
-
-    it('respects pre-aborted external controller', async () => {
-      const controller = new AbortController()
-      const task = Task.create({
-        run: () => 42,
-        controller,
+      const child = Task.create({
+        runner: async () => {
+          await blocker
+          return 'child'
+        },
+        linkedTo: parent,
       })
 
-      Task.externalized(task)
-      controller.abort('pre-aborted')
+      const parentRun = Task.run(parent)
+      const childRun = Task.run(child)
 
-      const result = await Task.run(task)
+      Task.abort(parent, 'parent aborted')
 
-      expect(Zygon.isRight(result)).toBe(true)
-      expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
-      expect(result.right?.message).toBe('pre-aborted')
+      // biome-ignore lint: it's okay here
+      resolveBlocker!()
+
+      const parentResult = await parentRun
+      const childResult = await childRun
+
+      expect(Zygon.isRight(parentResult)).toBe(true)
+      expect(Ptoma.match(parentResult.right, Task.Aborted)).toBe(true)
+      expect(Zygon.isRight(childResult)).toBe(true)
+      expect(Ptoma.match(childResult.right, Task.Aborted)).toBe(true)
     })
   })
 })

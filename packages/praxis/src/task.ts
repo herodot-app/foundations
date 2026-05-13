@@ -1,14 +1,16 @@
+import { Agora } from '@herodot-app/agora'
 import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
 import { Rheon } from '@herodot-app/rheon'
 import { Zygon } from '@herodot-app/zygon'
 
-export type Task<I = undefined, L = unknown, R = Task.Failures> = Idion<
+export type Task<I = undefined, O = unknown> = Idion<
   Task.Identifier,
   {
-    run: Task.Run<I, L, R>
+    runner: Task.RawRun<I, O>
+    abortion: Agora<Task.Aborted>
     controllerRef: Rheon<AbortController>
-    externalRef: Rheon<boolean>
+    unlistenAbortion: Agora.Unlistener
   }
 >
 
@@ -16,6 +18,9 @@ export namespace Task {
   export const identifier = Symbol.for('@herodot-app/praxis/task')
 
   export type Identifier = typeof identifier
+
+  // biome-ignore lint: we want any here
+  export type Any = Task<any, any>
 
   export class RuntimeFailure extends Ptoma.create(
     '@herodot-app/praxis/task/runtimme-failure',
@@ -33,6 +38,7 @@ export namespace Task {
 
   export class Aborted extends Ptoma.create(
     '@herodot-app/praxis/task/aborted',
+    'The task has been aborted',
   ) {}
 
   export type Failures =
@@ -45,9 +51,9 @@ export namespace Task {
     // biome-ignore lint: we want any here to accept any Zygon
     T extends Zygon<any, any> ? Zygon.LiftRight<T> : never
 
-  export type RawRun<I = undefined, R = unknown> = [undefined] extends [I]
-    ? (input?: I) => R
-    : (input: I) => R
+  export type RawRun<I = undefined, O = unknown> = [undefined] extends [I]
+    ? (input?: I) => O
+    : (input: I) => O
 
   export type Run<I = undefined, L = unknown, R = Failures> = [
     undefined,
@@ -55,148 +61,116 @@ export namespace Task {
     ? (input?: I) => Promise<Zygon<L, R>>
     : (input: I) => Promise<Zygon<L, R>>
 
-  export type CreateInput<I = undefined, L = unknown> = {
-    run: RawRun<I, L>
-    controller?: AbortController
-    external?: boolean
+  export type CreateInput<I = undefined, O = unknown> = {
+    runner: RawRun<I, O>
+    linkedTo?: Task.Any
   }
 
-  export function create<I = undefined, L = unknown, R = Failures>(
-    input: CreateInput<I, L>,
-  ): Task<I, L, R | Zygon.LiftRight<L>> {
-    const rawRun = input.run
-    const controllerRef = Rheon.create(
-      input.controller ?? new AbortController(),
-    )
-    const externalRef = Rheon.create(input.external ?? false)
+  export function create<I = undefined, O = unknown>(
+    input: CreateInput<I, O>,
+  ): Task<I, O> {
+    const abortion = Agora.create<Aborted>()
+    const controllerRef = Rheon.create(new AbortController())
 
-    const run = async (input: I) => {
-      try {
-        if (Rheon.read(controllerRef).signal.aborted) {
-          return Zygon.right(
-            new Aborted(Rheon.read(controllerRef).signal.reason),
-          )
-        }
+    const unlistenAbortion = Agora.listen(abortion, abort => {
+      Rheon.read(controllerRef).abort(abort)
+    })
 
-        const result = await Promise.resolve(rawRun(input))
-
-        if (Rheon.read(controllerRef).signal.aborted) {
-          return Zygon.right(
-            new Aborted(Rheon.read(controllerRef).signal.reason),
-          )
-        }
-
-        if (Zygon.is(result)) return result
-
-        return Zygon.left(result)
-      } catch (err) {
-        return Zygon.right(
-          new RuntimeFailure('runtime failure during a Task.run', undefined, {
-            cause: err,
-          }),
-        )
-      }
-    }
-
-    return Idion.create({
+    const task = Idion.create({
       id: identifier,
       value: {
-        run,
+        runner: input.runner,
         controllerRef,
-        externalRef,
+        abortion,
+        unlistenAbortion,
       },
-    }) as Task<I, L, R | Zygon.LiftRight<L>>
+    }) as Task<I, O>
+
+    if (input.linkedTo) {
+      Task.link(task, input.linkedTo)
+    }
+
+    return task
   }
 
   export type InferRunInput<T> = [undefined] extends [T] ? [] : [T]
 
-  export type InferRunReturn<
-    I = undefined,
-    L = unknown,
-    R = Failures,
-  > = Awaited<ReturnType<typeof Task.run<I, L, R>>>
+  export type Return<L = unknown, R = Failures> = Promise<
+    Zygon<Zygon.AwaitedLiftLeft<L>, R | Zygon.AwaitedLiftRight<L>>
+  >
 
-  export type InferRunReturnLeft<
-    I = undefined,
-    L = unknown,
-    R = Failures,
-  > = Zygon.LiftLeft<InferRunReturn<I, L, R>>
-
-  export type InferRunReturnRight<
-    I = undefined,
-    L = unknown,
-    R = Failures,
-  > = Zygon.LiftRight<InferRunReturn<I, L, R>, unknown>
+  export type Result<L = unknown, R = Failures> = Zygon<
+    Zygon.AwaitedLiftLeft<L>,
+    R | Zygon.AwaitedLiftRight<L>
+  >
 
   export async function run<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
+    task: Task<I, L>,
     ...inputs: InferRunInput<I>
-  ): Promise<Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>> {
-    const input = inputs.at(0)
+  ): Return<L, R> {
+    const input = inputs.at(0) as I
 
-    if (isInternal(task)) {
-      const controller = new AbortController()
+    Rheon.write(task.controllerRef, new AbortController())
 
-      Rheon.write(task.controllerRef, controller)
-    }
+    try {
+      if (Rheon.read(task.controllerRef).signal.aborted) {
+        return Zygon.right(Rheon.read(task.controllerRef).signal.reason as R)
+      }
 
-    const result = await task.run(input as I)
+      const result = await Promise.resolve(task.runner(input as I))
 
-    if (Zygon.isRight(result)) {
+      if (Rheon.read(task.controllerRef).signal.aborted) {
+        return Zygon.right(Rheon.read(task.controllerRef).signal.reason as R)
+      }
+
+      if (Zygon.isLeft(result)) {
+        return Zygon.left(
+          (await Zygon.asyncUnwrapLiftLeft(
+            result,
+            new LiftLeftFailure(),
+          )) as Zygon.AwaitedLiftLeft<L>,
+        )
+      }
+
+      if (Zygon.isRight(result)) {
+        return Zygon.right(
+          (await Zygon.asyncUnwrapLiftRight(
+            result,
+            new LiftRightFailure(),
+          )) as R,
+        )
+      }
+
+      return Zygon.left(result as Zygon.AwaitedLiftLeft<L>)
+    } catch (err) {
       return Zygon.right(
-        Zygon.unwrapLiftRight(result, new LiftRightFailure()),
-        // biome-ignore lint: inference is done in the function signature
-      ) as Zygon<any, any>
+        new RuntimeFailure('runtime failure during a Task.run', undefined, {
+          cause: err,
+        }) as R,
+      )
     }
-
-    return Zygon.left(
-      Zygon.unwrapLiftLeft(result, new LiftLeftFailure()),
-      // biome-ignore lint: inference is done in the function signature
-    ) as Zygon<any, any>
   }
 
-  export function aborted<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
-  ): boolean {
+  export function link(first: Task.Any, second: Task.Any): () => void {
+    const firstUnlisten = Agora.listen(first.abortion, abort => {
+      Task.abort(second, abort.message)
+    })
+
+    const secondUnlisten = Agora.listen(second.abortion, abort => {
+      Task.abort(first, abort.message)
+    })
+
+    return () => {
+      firstUnlisten()
+      secondUnlisten()
+    }
+  }
+
+  export function isAborted(task: Task.Any): boolean {
     return Rheon.read(task.controllerRef).signal.aborted
   }
 
-  export function abort<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
-    reason?: string,
-  ): void {
-    const controller = Rheon.read(task.controllerRef)
-
-    controller.abort(reason)
-  }
-
-  export function controller<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
-  ): AbortController {
-    return Rheon.read(task.controllerRef)
-  }
-
-  export function externalized<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
-  ): void {
-    Rheon.write(task.externalRef, true)
-  }
-
-  export function internalized<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
-  ): void {
-    Rheon.write(task.externalRef, false)
-  }
-
-  export function isExternal<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
-  ): boolean {
-    return true === Rheon.read(task.externalRef)
-  }
-
-  export function isInternal<I = undefined, L = unknown, R = Failures>(
-    task: Task<I, L, R>,
-  ): boolean {
-    return false === Rheon.read(task.externalRef)
+  export function abort(task: Task.Any, reason?: string): void {
+    Agora.publish(task.abortion, new Aborted(reason))
   }
 }
