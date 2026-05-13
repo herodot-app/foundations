@@ -307,6 +307,24 @@ type B = Zygon.LiftRight<Zygon<number, Error>>                  // Error
 type C = Zygon.LiftRight<string>                                // string
 ```
 
+### `Zygon.AwaitedLiftLeft<T, D>`
+
+Like `LiftLeft`, but also unwraps `Promise` layers — making it ideal for handling async results that may contain a Zygon inside. Recursively extracts the innermost success value from a type, unwrapping any `Promise` layers and nested `Left` layers until it reaches a bare value (or hits a `Right`).
+
+```ts
+type A = Zygon.AwaitedLiftLeft<Promise<Zygon<number, Error>>>  // number
+type B = Zygon.AwaitedLiftLeft<Zygon<Promise<number>, Error>>  // number
+```
+
+### `Zygon.AwaitedLiftRight<T, D>`
+
+Like `LiftRight`, but also unwraps `Promise` layers — making it ideal for handling async results that may contain a Zygon inside. Recursively extracts the innermost failure value from a type, unwrapping any `Promise` layers and nested `Right` layers until it reaches a bare value (or hits a `Left`).
+
+```ts
+type A = Zygon.AwaitedLiftRight<Promise<Zygon<number, Error>>>  // Error
+type B = Zygon.AwaitedLiftRight<Zygon<number, Promise<string>>> // string
+```
+
 ### `Zygon.left(value)`
 
 Wraps `value` in a `Left` and returns a `Zygon<T, unknown>`. Call this when things go well.
@@ -393,6 +411,28 @@ Zygon.unwrapLiftRight(a, null)  // → 'oops'
 
 const b = Zygon.right(Zygon.left(42))
 Zygon.unwrapLiftRight(b, null)  // → null
+```
+
+### `Zygon.asyncUnwrapLiftLeft(zygon, default)`
+
+Async sibling of `unwrapLiftLeft` — handles Zygons wrapped in Promises automatically. Unwraps a (possibly nested) Zygon and recursively lifts out the innermost success value, descending through any nested `Left` layers and `Promise` layers automatically. If a `Right` is encountered at any depth, returns `default` instead.
+
+```ts
+const result = await Zygon.asyncUnwrapLiftLeft(
+  Promise.resolve(Zygon.left(Zygon.left(42))),
+  0
+) // → 42
+```
+
+### `Zygon.asyncUnwrapLiftRight(zygon, default)`
+
+Async sibling of `unwrapLiftRight` — handles Zygons wrapped in Promises automatically. Unwraps a (possibly nested) Zygon and recursively lifts out the innermost failure value, descending through any nested `Right` layers and `Promise` layers automatically. If a `Left` is encountered at any depth, returns `default` instead.
+
+```ts
+const result = await Zygon.asyncUnwrapLiftRight(
+  Promise.resolve(Zygon.right(Zygon.right('oops'))),
+  null
+) // → 'oops'
 ```
 
 ### `Zygon.wrap(fn, wrapRight?)`

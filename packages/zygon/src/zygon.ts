@@ -377,14 +377,38 @@ export namespace Zygon {
    */
   export type LiftLeft<T, D = never> = [T] extends [never]
     ? D
-    : T extends Promise<infer A>
-      ? LiftLeft<A, D>
-      : T extends Zygon.Left<infer L>
-        ? LiftLeft<L, D>
-        : // biome-ignore lint: could be any here
-          T extends Zygon.Right<any>
-          ? D
-          : T
+    : T extends Zygon.Left<infer L>
+      ? LiftLeft<L, D>
+      : // biome-ignore lint: could be any here
+        T extends Zygon.Right<any>
+        ? D
+        : T
+
+  /**
+   * Like {@link LiftLeft}, but also unwraps `Promise` layers — making it ideal
+   * for handling async results that may contain a Zygon inside.
+   *
+   * Recursively extracts the innermost success value from a type, unwrapping
+   * any `Promise` layers and nested {@link Left} layers until it reaches a
+   * bare value (or hits a {@link Right}).
+   *
+   * Any {@link Right} or `Promise<Right>` encountered along the way resolves
+   * to `D` (defaults to `never`).
+   *
+   * @typeParam T - The type to lift/unwrap (may contain Promises).
+   * @typeParam D - Fallback type when a Right or `unknown` is encountered.
+   *
+   * @example
+   * ```ts
+   * type A = Zygon.AwaitedLiftLeft<Promise<Zygon<number, Error>>> // number
+   * type B = Zygon.AwaitedLiftLeft<Zygon<Promise<number>, Error>> // number
+   * ```
+   */
+  export type AwaitedLiftLeft<T, D = never> = [LiftLeft<T, D>] extends [
+    Promise<infer A>,
+  ]
+    ? AwaitedLiftLeft<A, D>
+    : LiftLeft<T, D>
 
   /**
    * Recursively extracts the innermost failure value from a type, unwrapping
@@ -411,10 +435,49 @@ export namespace Zygon {
     : // biome-ignore lint: we want to handle void cases here
       [void] extends [T]
       ? D
-      : T extends Promise<infer A>
-        ? LiftRight<A, D, Deep>
+      : T extends Zygon.Right<infer R>
+        ? LiftRight<R, D, true>
+        : // biome-ignore lint: could be any here
+          T extends Zygon.Left<any>
+          ? D
+          : [unknown] extends [T]
+            ? D
+            : true extends Deep
+              ? T
+              : D
+
+  /**
+   * Like {@link LiftRight}, but also unwraps `Promise` layers — making it ideal
+   * for handling async results that may contain a Zygon inside.
+   *
+   * Recursively extracts the innermost failure value from a type, unwrapping
+   * any `Promise` layers and nested {@link Right} layers until it reaches a
+   * bare value (or hits a {@link Left}).
+   *
+   * Any {@link Left} or `Promise<Left>` encountered along the way resolves to
+   * `D` (defaults to `never`).
+   *
+   * @typeParam T - The type to lift/unwrap (may contain Promises).
+   * @typeParam D - Fallback type when a Left or `unknown` is encountered.
+   * @typeParam Deep - Internal flag to stop unwrapping once we've gone deep enough.
+   *
+   * @example
+   * ```ts
+   * type A = Zygon.AwaitedLiftRight<Promise<Zygon<number, Error>>>, Error> // Error
+   * type B = Zygon.AwaitedLiftRight<Zygon<number, Promise<string>>> // string
+   * ```
+   */
+  export type AwaitedLiftRight<T, D = never, Deep extends boolean = false> = [
+    T,
+  ] extends [Promise<infer A>]
+    ? AwaitedLiftRight<A, D, Deep>
+    : [T] extends [never]
+      ? D
+      : // biome-ignore lint: we want to handle void cases here
+        [void] extends [T]
+        ? D
         : T extends Zygon.Right<infer R>
-          ? LiftRight<R, D, true>
+          ? AwaitedLiftRight<R, D, true>
           : // biome-ignore lint: could be any here
             T extends Zygon.Left<any>
             ? D
@@ -461,6 +524,47 @@ export namespace Zygon {
   }
 
   /**
+   * Async sibling of {@link unwrapLiftLeft} — handles Zygons wrapped in
+   * Promises automatically.
+   *
+   * Unwraps a (possibly nested) Zygon and recursively lifts out the innermost
+   * success value, descending through any nested {@link Left} layers and
+   * `Promise` layers automatically.
+   *
+   * If a {@link Right} is encountered at any depth, returns `defaultValue`
+   * instead — because one failure poisons the whole chain.
+   *
+   * @typeParam L - The success value type carried by the zygon.
+   * @typeParam R - The failure value type carried by the zygon.
+   * @typeParam D - The type of the fallback default value.
+   * @param zygon - The zygon (possibly nested, possibly in a Promise) to unwrap.
+   * @param defaultValue - Value returned when a Right is found or the chain fails.
+   * @returns The innermost left value, or `defaultValue`.
+   *
+   * @example
+   * ```ts
+   * const result = await Zygon.asyncUnwrapLiftLeft(
+   *   Promise.resolve(Zygon.left(Zygon.left(42))),
+   *   0
+   * ) // → 42
+   * ```
+   */
+  export async function asyncUnwrapLiftLeft<L, R, D>(
+    zygon: Zygon<L, R> | Promise<Zygon<L, R>>,
+    defaultValue: D,
+  ): Promise<AwaitedLiftLeft<L, D>> {
+    const result = await Promise.resolve(
+      unwrapLeft(await Promise.resolve(zygon), defaultValue as unknown as L),
+    )
+
+    if (Zygon.is<L, R>(result)) {
+      return asyncUnwrapLiftLeft(result, defaultValue)
+    }
+
+    return result as AwaitedLiftLeft<L, D>
+  }
+
+  /**
    * Alias for {@link unwrapLiftLeft} — because sometimes you just want to lift
    * and unwrap without thinking about which side is which.
    */
@@ -497,6 +601,47 @@ export namespace Zygon {
 
     if (Zygon.is<L, R>(result)) {
       return unwrapLiftRight(result, defaultValue)
+    }
+
+    return result as LiftRight<R>
+  }
+
+  /**
+   * Async sibling of {@link unwrapLiftRight} — handles Zygons wrapped in
+   * Promises automatically.
+   *
+   * Unwraps a (possibly nested) Zygon and recursively lifts out the innermost
+   * failure value, descending through any nested {@link Right} layers and
+   * `Promise` layers automatically.
+   *
+   * If a {@link Left} is encountered at any depth, returns `defaultValue`
+   * instead — because a success short-circuits the failure chain.
+   *
+   * @typeParam L - The success value type carried by the zygon.
+   * @typeParam R - The failure value type carried by the zygon.
+   * @typeParam D - The type of the fallback default value.
+   * @param zygon - The zygon (possibly nested, possibly in a Promise) to unwrap.
+   * @param defaultValue - Value returned when a Left is found or the chain fails.
+   * @returns The innermost right value, or `defaultValue`.
+   *
+   * @example
+   * ```ts
+   * const result = await Zygon.asyncUnwrapLiftRight(
+   *   Promise.resolve(Zygon.right(Zygon.right('oops'))),
+   *   null
+   * ) // → 'oops'
+   * ```
+   */
+  export async function asyncUnwrapLiftRight<L, R, D>(
+    zygon: Zygon<L, R> | Promise<Zygon<L, R>>,
+    defaultValue: D,
+  ): Promise<AwaitedLiftRight<R, D>> {
+    const result = await Promise.resolve(
+      unwrapRight(await Promise.resolve(zygon), defaultValue as unknown as R),
+    )
+
+    if (Zygon.is<L, R>(result)) {
+      return asyncUnwrapLiftRight(result, defaultValue)
     }
 
     return result as LiftRight<R>

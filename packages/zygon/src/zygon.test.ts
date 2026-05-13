@@ -387,6 +387,24 @@ describe('Zygon', () => {
     test('unwrapLift is an alias for unwrapLiftLeft', () => {
       expect(Zygon.unwrapLift).toBe(Zygon.unwrapLiftLeft)
     })
+
+    test('unwraps asynchronous left zygon', async () => {
+      const z = await Zygon.asyncUnwrapLiftLeft(
+        Promise.resolve(Zygon.left(Promise.resolve(Zygon.left('ok')))),
+        'not ok',
+      )
+
+      expect(z).toEqual('ok')
+    })
+
+    test('unwraps asynchronous right zygon', async () => {
+      const z = await Zygon.asyncUnwrapLiftRight(
+        Promise.resolve(Zygon.right(Promise.resolve(Zygon.right('ok')))),
+        'not ok',
+      )
+
+      expect(z).toEqual('ok')
+    })
   })
 
   describe('unwrapLiftRight', () => {
@@ -523,10 +541,8 @@ describe('Zygon', () => {
 
     test('handles right values in LiftRight not using default', () => {
       type Null = Zygon.LiftRight<Zygon<'john', 'error'>>
-      type Undefined = Zygon.LiftRight<Promise<Zygon<'john', 'error'>>>
 
       true satisfies Expect<Equal<Null, 'error'>>
-      true satisfies Expect<Equal<Undefined, 'error'>>
     })
 
     test('handles null and undefined in zygon value in LiftRight not using default', () => {
@@ -538,18 +554,16 @@ describe('Zygon', () => {
     })
 
     test('handles deeply nested zygon value in LiftRight using default or not depending on the deepness', () => {
-      type Null = Zygon.LiftRight<Promise<Zygon.Right<Promise<string>>>>
-      type Undefined = Zygon.LiftRight<Promise<Zygon.Left<Promise<string>>>>
+      type Null = Zygon.LiftRight<Zygon.Right<string>>
+      type Undefined = Zygon.LiftRight<Zygon.Left<string>>
 
       true satisfies Expect<Equal<Null, string>>
       true satisfies Expect<Equal<Undefined, never>>
     })
 
     test('handles piped nested zygon value in LiftRight using default or not depending on the deepness', () => {
-      type Null = Zygon.LiftRight<
-        string | Promise<boolean> | Promise<Zygon.Right<Promise<number>>>
-      >
-      type Undefined = Zygon.LiftRight<Promise<Zygon.Left<Promise<string>>>>
+      type Null = Zygon.LiftRight<string | boolean | Zygon.Right<number>>
+      type Undefined = Zygon.LiftRight<Zygon.Left<string>>
 
       true satisfies Expect<Equal<Null, number>>
       true satisfies Expect<Equal<Undefined, never>>
@@ -575,6 +589,22 @@ describe('Zygon', () => {
 
     test('handles unknown and zygon value in LiftRight using default', () => {
       type Number = Zygon.LiftRight<Zygon.Right<unknown>, number>
+
+      true satisfies Expect<Equal<Number, number>>
+    })
+
+    test('hanles nested zygon left and promises using AwaitedLiftLeft', () => {
+      type Number = Zygon.AwaitedLiftLeft<
+        Promise<Zygon.Left<Promise<Zygon.Left<Promise<number>>>>>
+      >
+
+      true satisfies Expect<Equal<Number, number>>
+    })
+
+    test('hanles nested zygon right and promises using AwaitedLiftRight', () => {
+      type Number = Zygon.AwaitedLiftRight<
+        Promise<Zygon.Right<Promise<Zygon.Right<Promise<number>>>>>
+      >
 
       true satisfies Expect<Equal<Number, number>>
     })
