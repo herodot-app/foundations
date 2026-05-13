@@ -19,15 +19,15 @@ export class Praxis<I = undefined, L = unknown, R = Task.Failures> {
   }
 
   constructor(public readonly task: Task<I, L, R>) {
-    this.pipe.bind(this)
-    this.run.bind(this)
-    this.chain.bind(this)
-    this.chainRight.bind(this)
-    this.recover.bind(this)
-    this.merge.bind(this)
-    this.execute.bind(this)
-    this.effect.bind(this)
-    this.inherit.bind(this)
+    this.pipe = this.pipe.bind(this)
+    this.run = this.run.bind(this)
+    this.chain = this.chain.bind(this)
+    this.chainRight = this.chainRight.bind(this)
+    this.recover = this.recover.bind(this)
+    this.fork = this.fork.bind(this)
+    this.effect = this.effect.bind(this)
+    this.spawn = this.spawn.bind(this)
+    this.inherit = this.inherit.bind(this)
   }
 
   pipe<L2 = unknown, R2 = Task.Failures>(
@@ -130,7 +130,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.Failures> {
     >
   }
 
-  merge<L2 = unknown, R2 = unknown>(
+  fork<L2 = unknown, R2 = unknown>(
     runner: Task.RawRun<
       Zygon.LiftLeft<L>,
       Praxis<L, L2, R2> | Promise<Praxis<L, L2, R2>>
@@ -163,7 +163,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.Failures> {
     >
   }
 
-  execute(
+  effect(
     runner: Task.RawRun<
       Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>,
       void | Promise<void>
@@ -185,7 +185,7 @@ export class Praxis<I = undefined, L = unknown, R = Task.Failures> {
     return new Praxis(this.inherit(newTask)) as unknown as Praxis<I, L, R>
   }
 
-  effect(
+  spawn(
     runner: Task.RawRun<
       Zygon<Zygon.LiftLeft<L>, R | Zygon.LiftRight<L>>,
       void | Promise<void>

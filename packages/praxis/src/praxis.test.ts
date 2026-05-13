@@ -356,9 +356,9 @@ describe('Praxis', () => {
     })
   })
 
-  describe('Praxis.merge', () => {
+  describe('Praxis.fork', () => {
     it('merges with another praxis on Left values', async () => {
-      const praxis = Praxis.create((x: number) => x + 1).merge(() =>
+      const praxis = Praxis.create((x: number) => x + 1).fork(() =>
         Praxis.create((y: number) => y * 2),
       )
 
@@ -371,7 +371,7 @@ describe('Praxis', () => {
     it('stops merge on Right values', async () => {
       const praxis = Praxis.create(() => {
         throw new Error('original error')
-      }).merge(() => Praxis.create(() => 100))
+      }).fork(() => Praxis.create(() => 100))
 
       const result = await praxis.run()
 
@@ -379,7 +379,7 @@ describe('Praxis', () => {
     })
 
     it('handles async merge functions', async () => {
-      const praxis = Praxis.create((x: number) => x + 1).merge(async () => {
+      const praxis = Praxis.create((x: number) => x + 1).fork(async () => {
         await Promise.resolve()
 
         return Praxis.create((y: number) => y + 100)
@@ -393,8 +393,8 @@ describe('Praxis', () => {
 
     it('can merge multiple times', async () => {
       const praxis = Praxis.create((x: number) => x + 1)
-        .merge(() => Praxis.create((y: number) => y + 10))
-        .merge(() => Praxis.create((z: number) => z * 2))
+        .fork(() => Praxis.create((y: number) => y + 10))
+        .fork(() => Praxis.create((z: number) => z * 2))
 
       const result = await praxis.run(5)
 
@@ -405,7 +405,7 @@ describe('Praxis', () => {
     it('can mix chain and merge', async () => {
       const praxis = Praxis.create((x: number) => x)
         .chain(value => value + 1)
-        .merge(() => Praxis.create(value => value * 2))
+        .fork(() => Praxis.create(value => value * 2))
         .chain(value => value + 10)
 
       const result = await praxis.run(5)
@@ -417,7 +417,7 @@ describe('Praxis', () => {
     it('can mix pipe with merge', async () => {
       const praxis = Praxis.create((x: number) => x)
         .pipe(result => (result.left ? result.left + 1 : result))
-        .merge(() => Praxis.create((y: number) => y * 3))
+        .fork(() => Praxis.create((y: number) => y * 3))
         .pipe(result => (result.left ? result.left + 5 : result))
 
       const result = await praxis.run(10)
@@ -429,7 +429,7 @@ describe('Praxis', () => {
     it('inherits task properties from merged praxis', async () => {
       const outer = Praxis.create((x: number) => x * 2)
       const inner = Praxis.create((y: number) => y + 10)
-      const praxis = outer.merge(() => inner)
+      const praxis = outer.fork(() => inner)
 
       const result = await praxis.run(5)
 
@@ -438,10 +438,10 @@ describe('Praxis', () => {
     })
   })
 
-  describe('Praxis.execute', () => {
+  describe('Praxis.spawn', () => {
     it('runs a side effect and returns original result', async () => {
       let executed = false
-      const praxis = Praxis.create((x: number) => x * 2).execute(() => {
+      const praxis = Praxis.create((x: number) => x * 2).spawn(() => {
         executed = true
       })
 
@@ -456,7 +456,7 @@ describe('Praxis', () => {
       // biome-ignore lint: any is fine here
       let receivedResult: any = null
 
-      const praxis = Praxis.create((x: number) => x + 1).execute(result => {
+      const praxis = Praxis.create((x: number) => x + 1).spawn(result => {
         receivedResult = result
       })
 
@@ -469,7 +469,7 @@ describe('Praxis', () => {
     it('handles async executor functions', async () => {
       let executed = false
 
-      const praxis = Praxis.create((x: number) => x * 2).execute(async () => {
+      const praxis = Praxis.create((x: number) => x * 2).spawn(async () => {
         await Promise.resolve()
         executed = true
       })
@@ -484,7 +484,7 @@ describe('Praxis', () => {
     it('can chain execute with other methods', async () => {
       let executed = false
       const praxis = Praxis.create((x: number) => x + 1)
-        .execute(() => {
+        .spawn(() => {
           executed = true
         })
         .chain(value => value * 2)
@@ -500,7 +500,7 @@ describe('Praxis', () => {
       let executed = false
       const praxis = Praxis.create(() => {
         throw new Error('original error')
-      }).execute(() => {
+      }).spawn(() => {
         executed = true
       })
 
@@ -514,9 +514,9 @@ describe('Praxis', () => {
       const executions: number[] = []
 
       const praxis = Praxis.create((x: number) => x)
-        .execute(() => void executions.push(1))
-        .execute(() => void executions.push(2))
-        .execute(() => void executions.push(3))
+        .spawn(() => void executions.push(1))
+        .spawn(() => void executions.push(2))
+        .spawn(() => void executions.push(3))
 
       const result = await praxis.run(5)
 
@@ -530,7 +530,7 @@ describe('Praxis', () => {
 
       const praxis = Praxis.create((x: number) => x)
         .pipe(result => (result.left ? result.left + 1 : result))
-        .execute(() => {
+        .spawn(() => {
           executed = true
         })
         .pipe(result => (result.left ? result.left * 2 : result))
@@ -546,7 +546,7 @@ describe('Praxis', () => {
       let executed = false
 
       const praxis = Praxis.create((n: number) => Zygon.right(n * 2))
-        .execute(() => {
+        .spawn(() => {
           executed = true
         })
         .chainRight(val => (val instanceof Error ? 0 : val + 10))
@@ -559,9 +559,9 @@ describe('Praxis', () => {
     })
   })
 
-  describe('Praxis.effect', () => {
+  describe('Praxis.spawn', () => {
     it('fires effect asynchronously and returns original result', async () => {
-      const praxis = Praxis.create((x: number) => x * 2).effect(() => {})
+      const praxis = Praxis.create((x: number) => x * 2).spawn(() => {})
 
       const result = await praxis.run(10)
 
@@ -572,7 +572,7 @@ describe('Praxis', () => {
     it('passes result to the effect function', async () => {
       // biome-ignore lint: any is fine here
       let receivedResult: any = null
-      const praxis = Praxis.create((x: number) => x + 1).effect(result => {
+      const praxis = Praxis.create((x: number) => x + 1).spawn(result => {
         receivedResult = result
       })
 
@@ -585,7 +585,7 @@ describe('Praxis', () => {
     it('handles async effect functions', async () => {
       let executed = false
 
-      const praxis = Praxis.create((x: number) => x * 2).effect(async () => {
+      const praxis = Praxis.create((x: number) => x * 2).spawn(async () => {
         await Promise.resolve()
         executed = true
       })
@@ -601,7 +601,7 @@ describe('Praxis', () => {
       let executed = false
 
       const praxis = Praxis.create((x: number) => x + 1)
-        .effect(() => {
+        .spawn(() => {
           executed = true
         })
         .chain(value => value * 2)
@@ -618,7 +618,7 @@ describe('Praxis', () => {
 
       const praxis = Praxis.create(() => {
         throw new Error('original error')
-      }).effect(() => {
+      }).spawn(() => {
         executed = true
       })
 
@@ -632,9 +632,9 @@ describe('Praxis', () => {
       const executions: number[] = []
 
       const praxis = Praxis.create((x: number) => x)
-        .effect(() => void executions.push(1))
-        .effect(() => void executions.push(2))
-        .effect(() => void executions.push(3))
+        .spawn(() => void executions.push(1))
+        .spawn(() => void executions.push(2))
+        .spawn(() => void executions.push(3))
 
       const result = await praxis.run(5)
 
@@ -648,7 +648,7 @@ describe('Praxis', () => {
 
       const praxis = Praxis.create((x: number) => x)
         .pipe(result => (result.left ? result.left + 1 : result))
-        .effect(() => {
+        .spawn(() => {
           executed = true
         })
         .pipe(result => (result.left ? result.left * 2 : result))
@@ -663,7 +663,7 @@ describe('Praxis', () => {
     it('can mix chainRight with effect', async () => {
       let executed = false
       const praxis = Praxis.create((n: number) => Zygon.right(n * 2))
-        .effect(() => {
+        .spawn(() => {
           executed = true
         })
         .chainRight(val => (val instanceof Error ? 0 : val + 10))
@@ -679,7 +679,7 @@ describe('Praxis', () => {
       // biome-ignore lint: any is fine here
       let caughtError: any = null
 
-      const praxis = Praxis.create((x: number) => x).effect(
+      const praxis = Praxis.create((x: number) => x).spawn(
         () => {
           throw new Error('effect error')
         },
@@ -699,7 +699,7 @@ describe('Praxis', () => {
     it('execute effect in a separated promise flow that does not affect the praxis pipeline', async () => {
       let done: boolean = false
 
-      const praxis = Praxis.create((x: number) => x).effect(() => {
+      const praxis = Praxis.create((x: number) => x).spawn(() => {
         throw new Error('effect error')
       })
 
@@ -708,7 +708,7 @@ describe('Praxis', () => {
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(5)
 
-      const praxis2 = Praxis.create((x: number) => x * 2).effect(
+      const praxis2 = Praxis.create((x: number) => x * 2).spawn(
         () =>
           new Promise(resolve =>
             setTimeout(() => {
@@ -727,7 +727,7 @@ describe('Praxis', () => {
     })
 
     it('does not throw when effect fails without catcher', async () => {
-      const praxis = Praxis.create((x: number) => x).effect(() => {
+      const praxis = Praxis.create((x: number) => x).spawn(() => {
         throw new Error('unhandled effect error')
       })
 
@@ -742,13 +742,13 @@ describe('Praxis', () => {
       let executedInEffect = false
 
       const praxis = Praxis.create((x: number) => x + 1)
-        .merge(() =>
+        .fork(() =>
           Praxis.create((y: number) => {
             executedInMerge = true
             return y * 2
           }),
         )
-        .effect(() => {
+        .spawn(() => {
           executedInEffect = true
         })
 
@@ -765,8 +765,8 @@ describe('Praxis', () => {
       let receivedResult: any = null
 
       const praxis = Praxis.create((x: number) => x)
-        .merge(() => Praxis.create((y: number) => y + 10))
-        .effect(result => {
+        .fork(() => Praxis.create((y: number) => y + 10))
+        .spawn(result => {
           receivedResult = result
         })
 
@@ -874,7 +874,7 @@ describe('Praxis', () => {
       const praxis = Praxis.create(async (x: number) => {
         await new Promise(resolve => setTimeout(resolve, 200))
         return x + 1
-      }).merge(() => Praxis.create((y: number) => y * 2))
+      }).fork(() => Praxis.create((y: number) => y * 2))
 
       const promise = praxis.run(10)
 
