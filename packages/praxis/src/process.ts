@@ -30,6 +30,9 @@ export namespace Process {
 
   export type Identifier = typeof identifier
 
+  // biome-ignore lint: we ant any here
+  export type Any = Process<any, any, any, Cognition.Any>
+
   export type Input<
     I = undefined,
     O = unknown,
