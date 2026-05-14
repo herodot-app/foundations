@@ -1,8 +1,12 @@
 import { Agora } from '@herodot-app/agora'
 import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
+import { Cognition } from './cognition'
 
-export type Experience<T = unknown> = Idion<
+export type Experience<
+  T = unknown,
+  C extends Cognition.Any = Cognition.Never,
+> = Idion<
   Experience.Identifier,
   {
     readonly value: T
@@ -10,6 +14,8 @@ export type Experience<T = unknown> = Idion<
     readonly abortions: Agora<Experience.Abortion>
 
     readonly controller: AbortController
+
+    readonly cognition: C
   }
 >
 
@@ -23,15 +29,20 @@ export namespace Experience {
     'The current experience has been aborted',
   ) {}
 
-  export type Input<T = unknown> = {
+  export type Input<T = unknown, C extends Cognition.Any = Cognition.Never> = {
     value: T
     abortions?: Agora<Abortion>
+    cognition?: C
   }
 
-  export function create<T = unknown>({
+  export function create<
+    T = unknown,
+    C extends Cognition.Any = Cognition.Never,
+  >({
     value,
     abortions = Agora.create<Abortion>(),
-  }: Input<T>): Experience<T> {
+    cognition = Cognition.create(Object.create({})) as C,
+  }: Input<T, C>): Experience<T, C> {
     const controller = new AbortController()
 
     const experience = Idion.create({
@@ -40,6 +51,7 @@ export namespace Experience {
         value,
         abortions,
         controller,
+        cognition,
       },
     })
 
@@ -54,14 +66,7 @@ export namespace Experience {
       { once: true },
     )
 
-    return Idion.create({
-      id: identifier,
-      value: {
-        value,
-        abortions,
-        controller,
-      },
-    })
+    return experience
   }
 
   export function abort<T = unknown>(

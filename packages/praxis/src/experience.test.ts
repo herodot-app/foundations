@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { Agora } from '@herodot-app/agora'
 import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
+import { Cognition } from './cognition'
 import { Experience } from './experience'
 
 describe('Experience', () => {
@@ -255,7 +256,7 @@ describe('Experience', () => {
         abortions: sharedAbortions,
       })
 
-      let abortionsReceived: Experience.Abortion[] = []
+      const abortionsReceived: Experience.Abortion[] = []
 
       Agora.listen(sharedAbortions, abortion => {
         abortionsReceived.push(abortion)
@@ -307,5 +308,26 @@ describe('Experience', () => {
       expect(result).toBe('unknown')
     })
   })
-})
 
+  describe('Experience cognition', () => {
+    it('creates an experience with a Cognition.Never by default', () => {
+      const experience = Experience.create({ value: 42 })
+
+      expect(Idion.is(experience.cognition, Cognition.identifier)).toBe(true)
+    })
+
+    it('creates an experience with a custom cognition', () => {
+      const customCognition = Cognition.create<{ logger: string }>({
+        logger: 'winston',
+      })
+
+      const experience = Experience.create({
+        value: 42,
+        cognition: customCognition,
+      })
+
+      expect(experience.cognition).toBe(customCognition)
+      expect(Cognition.get(experience.cognition, 'logger')).toBe('winston')
+    })
+  })
+})
