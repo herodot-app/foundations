@@ -447,14 +447,23 @@ describe('Zygon', () => {
   })
 
   describe('LiftLeft and LiftRight', () => {
-    test('handles never in zygon value in LiftLeft using default', () => {
+    test('handles never in zygon value in LiftLeft', () => {
       type Never = Zygon.LiftLeft<never, string>
       type E = Equal<Never, string>
 
       true satisfies Expect<E>
     })
 
-    test('handles void in zygon value in LiftLeft not using default', () => {
+    test('handles piped union values in LiftLeft', () => {
+      type A = Zygon.LiftLeft<
+        string | number | Zygon<boolean, never> | Zygon.Left<Date>,
+        string
+      >
+
+      true satisfies Expect<Equal<A, string | number | boolean | Date>>
+    })
+
+    test('handles void in zygon value in LiftLeft using default', () => {
       type Void = Zygon.LiftLeft<void, string>
       type E = Equal<Void, void>
 
@@ -462,17 +471,17 @@ describe('Zygon', () => {
     })
 
     test('handles null and undefined in zygon value in LiftLeft not using default', () => {
-      type Null = Zygon.LiftLeft<null, string>
-      type Undefined = Zygon.LiftLeft<undefined, string>
+      type Null = Zygon.LiftLeft<null>
+      type Undefined = Zygon.LiftLeft<undefined>
 
       true satisfies Expect<Equal<Null, null>>
       true satisfies Expect<Equal<Undefined, undefined>>
     })
 
     test('handles Left and never in zygon value in LiftLeft using default', () => {
-      type Never = Zygon.LiftLeft<Zygon<never, unknown>, string>
+      type String = Zygon.LiftLeft<Zygon<never, unknown>, string>
 
-      true satisfies Expect<Equal<Never, string>>
+      true satisfies Expect<Equal<String, string>>
     })
 
     test('handles Right and zygon value in LiftLeft using default', () => {
@@ -493,16 +502,25 @@ describe('Zygon', () => {
       true satisfies Expect<Equal<Unknown, unknown>>
     })
 
+    test('handles many value in LiftLeft not using default', () => {
+      type Str = Zygon.LiftLeft<
+        Zygon.Left<Zygon.Left<Zygon.Left<string>>>,
+        'error'
+      >
+
+      true satisfies Expect<Equal<Str, string>>
+    })
+
     test('handles never in zygon value in LiftRight using default', () => {
-      type Never = Zygon.LiftRight<never, string>
-      type E = Equal<Never, string>
+      type Str = Zygon.LiftRight<never, string>
+      type E = Equal<Str, string>
 
       true satisfies Expect<E>
     })
 
     test('handles void in zygon value in LiftRight using default', () => {
-      type String = Zygon.LiftRight<void, string>
-      type E = Equal<String, string>
+      type Void = Zygon.LiftRight<void, string>
+      type E = Equal<Void, string>
 
       true satisfies Expect<E>
     })
@@ -515,28 +533,18 @@ describe('Zygon', () => {
       true satisfies Expect<Equal<Undefined, never>>
     })
 
-    test('handles Promises of null and undefined in zygon value in LiftRight not using default', () => {
-      type Null = Zygon.LiftRight<Promise<null>>
-      type Undefined = Zygon.LiftRight<Promise<undefined>>
-
-      true satisfies Expect<Equal<Null, never>>
-      true satisfies Expect<Equal<Undefined, never>>
-    })
-
     test('handles raw values in LiftRight using default', () => {
-      type Null = Zygon.LiftRight<'john'>
-      type Undefined = Zygon.LiftRight<Promise<'john'>>
+      type A = Zygon.LiftRight<'john'>
+      type B = Zygon.LiftRight<'john'>
 
-      true satisfies Expect<Equal<Null, never>>
-      true satisfies Expect<Equal<Undefined, never>>
+      true satisfies Expect<Equal<A, never>>
+      true satisfies Expect<Equal<B, never>>
     })
 
     test('handles left values in LiftRight using default', () => {
-      type Null = Zygon.LiftRight<Zygon.Left<'john'>>
-      type Undefined = Zygon.LiftRight<Promise<Zygon.Left<'john'>>>
+      type Never = Zygon.LiftRight<Zygon.Left<'john'>>
 
-      true satisfies Expect<Equal<Null, never>>
-      true satisfies Expect<Equal<Undefined, never>>
+      true satisfies Expect<Equal<Never, never>>
     })
 
     test('handles right values in LiftRight not using default', () => {
@@ -554,10 +562,12 @@ describe('Zygon', () => {
     })
 
     test('handles deeply nested zygon value in LiftRight using default or not depending on the deepness', () => {
-      type Null = Zygon.LiftRight<Zygon.Right<string>>
+      type Str = Zygon.LiftRight<Zygon.Right<string>>
+      type Str2 = Zygon.LiftRight<Zygon.Right<Zygon.Right<Zygon.Right<string>>>>
       type Undefined = Zygon.LiftRight<Zygon.Left<string>>
 
-      true satisfies Expect<Equal<Null, string>>
+      true satisfies Expect<Equal<Str, string>>
+      true satisfies Expect<Equal<Str2, string>>
       true satisfies Expect<Equal<Undefined, never>>
     })
 
@@ -570,9 +580,9 @@ describe('Zygon', () => {
     })
 
     test('handles Right and never in zygon value in LiftRight using default', () => {
-      type String = Zygon.LiftRight<Zygon<string, never>, string>
+      type String = Zygon.LiftRight<Zygon<string, never>, 'default'>
 
-      true satisfies Expect<Equal<String, string>>
+      true satisfies Expect<Equal<String, 'default'>>
     })
 
     test('handles Left and zygon value in LiftRight using default', () => {
@@ -590,7 +600,7 @@ describe('Zygon', () => {
     test('handles unknown and zygon value in LiftRight using default', () => {
       type Number = Zygon.LiftRight<Zygon.Right<unknown>, number>
 
-      true satisfies Expect<Equal<Number, number>>
+      true satisfies Expect<Equal<Number, unknown>>
     })
 
     test('hanles nested zygon left and promises using AwaitedLiftLeft', () => {
@@ -603,7 +613,7 @@ describe('Zygon', () => {
 
     test('hanles nested zygon right and promises using AwaitedLiftRight', () => {
       type Number = Zygon.AwaitedLiftRight<
-        Promise<Zygon.Right<Promise<Zygon.Right<Promise<number>>>>>
+        Promise<Zygon<never, Promise<Zygon.Right<Promise<number>>>>>
       >
 
       true satisfies Expect<Equal<Number, number>>

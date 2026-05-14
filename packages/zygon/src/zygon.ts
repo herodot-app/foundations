@@ -377,12 +377,17 @@ export namespace Zygon {
    */
   export type LiftLeft<T, D = never> = [T] extends [never]
     ? D
-    : T extends Zygon.Left<infer L>
-      ? LiftLeft<L, D>
-      : // biome-ignore lint: could be any here
-        T extends Zygon.Right<any>
-        ? D
-        : T
+    : // biome-ignore lint: we want any here
+      T extends Zygon.Right<any>
+      ? D
+      : T extends Zygon.Left<infer L>
+        ? LiftLeft<L, D>
+        : // biome-ignore lint: we want any here
+          T extends Zygon<infer L, any>
+          ? LiftLeft<L, D>
+          : [T] extends [never]
+            ? D
+            : T
 
   /**
    * Like {@link LiftLeft}, but also unwraps `Promise` layers — making it ideal
@@ -404,11 +409,18 @@ export namespace Zygon {
    * type B = Zygon.AwaitedLiftLeft<Zygon<Promise<number>, Error>> // number
    * ```
    */
-  export type AwaitedLiftLeft<T, D = never> = [LiftLeft<T, D>] extends [
-    Promise<infer A>,
-  ]
-    ? AwaitedLiftLeft<A, D>
-    : LiftLeft<T, D>
+  export type AwaitedLiftLeft<T, D = never> =
+    T extends Promise<infer A>
+      ? AwaitedLiftLeft<A, D>
+      : // biome-ignore lint: we want any here
+        T extends Zygon.Right<any>
+        ? D
+        : T extends Zygon.Left<infer L>
+          ? AwaitedLiftLeft<L, D>
+          : // biome-ignore lint: we want any here
+            T extends Zygon<infer L, any>
+            ? AwaitedLiftLeft<L, D>
+            : T
 
   /**
    * Recursively extracts the innermost failure value from a type, unwrapping
@@ -432,19 +444,16 @@ export namespace Zygon {
     T,
   ] extends [never]
     ? D
-    : // biome-ignore lint: we want to handle void cases here
-      [void] extends [T]
+    : T extends Zygon.Left<any>
       ? D
-      : T extends Zygon.Right<infer R>
-        ? LiftRight<R, D, true>
-        : // biome-ignore lint: could be any here
-          T extends Zygon.Left<any>
-          ? D
-          : [unknown] extends [T]
-            ? D
-            : true extends Deep
-              ? T
-              : D
+      : T extends Zygon.Right<infer A>
+        ? LiftRight<A, D, true>
+        : // biome-ignore lint: we want any here
+          T extends Zygon<any, infer A>
+          ? LiftRight<A, D, true>
+          : true extends Deep
+            ? T
+            : D
 
   /**
    * Like {@link LiftRight}, but also unwraps `Promise` layers — making it ideal
@@ -469,23 +478,21 @@ export namespace Zygon {
    */
   export type AwaitedLiftRight<T, D = never, Deep extends boolean = false> = [
     T,
-  ] extends [Promise<infer A>]
-    ? AwaitedLiftRight<A, D, Deep>
-    : [T] extends [never]
-      ? D
-      : // biome-ignore lint: we want to handle void cases here
-        [void] extends [T]
+  ] extends [never]
+    ? D
+    : T extends Promise<infer A>
+      ? AwaitedLiftRight<A, D, Deep>
+      : // biome-ignore lint: we want any here
+        T extends Zygon.Left<any>
         ? D
-        : T extends Zygon.Right<infer R>
-          ? AwaitedLiftRight<R, D, true>
-          : // biome-ignore lint: could be any here
-            T extends Zygon.Left<any>
-            ? D
-            : [unknown] extends [T]
-              ? D
-              : true extends Deep
-                ? T
-                : D
+        : T extends Zygon.Right<infer A>
+          ? AwaitedLiftRight<A, D, true>
+          : // biome-ignore lint: we want any here
+            T extends Zygon<any, infer A>
+            ? AwaitedLiftRight<A, D, true>
+            : true extends Deep
+              ? T
+              : D
 
   /**
    * Unwraps a {@link Zygon} and recursively lifts out the innermost success
@@ -644,6 +651,6 @@ export namespace Zygon {
       return asyncUnwrapLiftRight(result, defaultValue)
     }
 
-    return result as LiftRight<R>
+    return result as AwaitedLiftRight<R>
   }
 }
