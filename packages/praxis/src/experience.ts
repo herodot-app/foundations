@@ -29,6 +29,9 @@ export namespace Experience {
     'The current experience has been aborted',
   ) {}
 
+  // biome-ignore lint: could be any cognition here
+  export type InferValue<T> = T extends Experience<infer I, any> ? I : T
+
   export type Input<T = unknown, C extends Cognition.Any = Cognition.Never> = {
     value: T
     abortions?: Agora<Abortion>
@@ -80,5 +83,11 @@ export namespace Experience {
 
   export function abortion(reason?: string): Abortion {
     return new Abortion(reason)
+  }
+
+  export function isAborted<T, C extends Cognition.Any = Cognition.Never>(
+    experience: Experience<T, C>,
+  ): boolean {
+    return experience.controller.signal.aborted
   }
 }

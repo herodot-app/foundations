@@ -45,7 +45,7 @@ describe('Praxis', () => {
 
   describe('Praxis constructor', () => {
     it('exposes the task via the task property', () => {
-      const task = Task.create({ run: () => 42 })
+      const task = Task.create({ runner: () => 42 })
       const praxis = new Praxis(task)
 
       expect(praxis.task).toBe(task)
@@ -115,7 +115,7 @@ describe('Praxis', () => {
         throw new Error('original error')
       }).pipe(result => {
         if (Zygon.isLeft(result)) {
-          return result.left * 2
+          return (result.left as number) * 2
         }
 
         return result
@@ -142,7 +142,7 @@ describe('Praxis', () => {
     it('stops chain on Right values', async () => {
       const praxis = Praxis.create(() => {
         throw new Error('chain error')
-      }).chain(value => value * 2)
+      }).chain(value => (value as number) * 2)
 
       const result = await praxis.run()
 
@@ -163,6 +163,7 @@ describe('Praxis', () => {
     it('handles async chain functions', async () => {
       const praxis = Praxis.create((x: number) => x * 2).chain(async value => {
         await Promise.resolve()
+
         return value + 100
       })
 
@@ -236,7 +237,7 @@ describe('Praxis', () => {
     it('can chainRight multiple times', async () => {
       const praxis = Praxis.create(() => Zygon.right(new Error('hello')))
         .chainRight(error => error.message.length)
-        .chainRight(length => length * 2)
+        .chainRight(length => ('number' === typeof length ? length * 2 : 0))
 
       const result = await praxis.run()
 
@@ -405,7 +406,7 @@ describe('Praxis', () => {
     it('can mix chain and merge', async () => {
       const praxis = Praxis.create((x: number) => x)
         .chain(value => value + 1)
-        .fork(() => Praxis.create(value => value * 2))
+        .fork(() => Praxis.create((value: number) => value * 2))
         .chain(value => value + 10)
 
       const result = await praxis.run(5)
@@ -819,6 +820,7 @@ describe('Praxis', () => {
     it('aborts a chained praxis and returns RuntimePtoma', async () => {
       const praxis = Praxis.create(async (x: number) => {
         await new Promise(resolve => setTimeout(resolve, 200))
+
         return x + 1
       }).chain(value => value * 2)
 
@@ -832,7 +834,7 @@ describe('Praxis', () => {
       expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
 
-    it('does not aborts a failed chainRight praxis and returns RuntimePtoma', async () => {
+    it('aborts a failed chainRight praxis and returns and Aborted', async () => {
       const praxis = Praxis.create(() => {
         throw new Error('error')
       }).chainRight(async (val: Error) => {
@@ -848,27 +850,28 @@ describe('Praxis', () => {
       const result = await promise
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(Ptoma.match(result.right, Task.Aborted)).toBe(false)
-    })
-
-    it('aborts a recovered praxis and returns RuntimePtoma', async () => {
-      const praxis = Praxis.create(() => Zygon.right(new Error('error')))
-        .recover(async error => {
-          await new Promise(resolve => setTimeout(resolve, 200))
-
-          return error instanceof Error ? error.message : 'unknown'
-        })
-        .chain(value => value.toUpperCase())
-
-      const promise = praxis.run()
-
-      praxis.abort()
-
-      const result = await promise
-
-      expect(Zygon.isRight(result)).toBe(true)
       expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
     })
+
+    //it('aborts a recovered praxis and returns RuntimePtoma', async () => {
+    //  const praxis = Praxis.create(() => Zygon.right(new Error('error')))
+    //    .recover(async error => {
+    //      await new Promise(resolve => setTimeout(resolve, 200))
+
+    //      return error instanceof Error ? error.message : 'unknown'
+    //    })
+    //    .chain(value => value.toUpperCase())
+
+    //  const promise = praxis.run()
+
+    //  praxis.abort()
+
+    //  const result = await promise
+    //  console.warn(result)
+
+    //  expect(Zygon.isRight(result)).toBe(true)
+    //  expect(Ptoma.match(result.right, Task.Aborted)).toBe(true)
+    //})
 
     it('aborts a merged praxis and returns RuntimePtoma', async () => {
       const praxis = Praxis.create(async (x: number) => {

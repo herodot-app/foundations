@@ -7,10 +7,9 @@ describe('Delay', () => {
   describe('Delay.create', () => {
     it('adds a delay before executing the praxis', async () => {
       const start = Date.now()
-      const praxis = Delay.create({
-        praxis: Praxis.create((x: number) => x * 2),
-        duration: 100,
-      })
+      const praxis = Praxis.create((x: number) => x * 2).fork(x =>
+        Delay.create({ duration: 100, return: x }),
+      )
 
       const result = await praxis.run(10)
 

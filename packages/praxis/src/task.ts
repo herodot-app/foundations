@@ -7,10 +7,13 @@ import { Zygon } from '@herodot-app/zygon'
 export type Task<I = undefined, O = unknown> = Idion<
   Task.Identifier,
   {
-    runner: Task.RawRun<I, O>
+    runner: Task.Runner<I, O>
     abortion: Agora<Task.Aborted>
+    restoration: Agora
+    restorationRef: Rheon<boolean>
     controllerRef: Rheon<AbortController>
-    unlistenAbortion: Agora.Unlistener
+    abortionRef: Rheon<Task.Aborted | null>
+    unlisten: Agora.Unlistener
   }
 >
 
@@ -51,18 +54,12 @@ export namespace Task {
     // biome-ignore lint: we want any here to accept any Zygon
     T extends Zygon<any, any> ? Zygon.LiftRight<T> : never
 
-  export type RawRun<I = undefined, O = unknown> = [undefined] extends [I]
+  export type Runner<I = undefined, O = unknown> = [undefined] extends [I]
     ? (input?: I) => O
     : (input: I) => O
 
-  export type Run<I = undefined, L = unknown, R = Failures> = [
-    undefined,
-  ] extends [I]
-    ? (input?: I) => Promise<Zygon<L, R>>
-    : (input: I) => Promise<Zygon<L, R>>
-
   export type CreateInput<I = undefined, O = unknown> = {
-    runner: RawRun<I, O>
+    runner: Runner<I, O>
     linkedTo?: Task.Any
   }
 
@@ -70,11 +67,26 @@ export namespace Task {
     input: CreateInput<I, O>,
   ): Task<I, O> {
     const abortion = Agora.create<Aborted>()
+    const restoration = Agora.create()
+    const restorationRef = Rheon.create(true)
     const controllerRef = Rheon.create(new AbortController())
+    const abortionRef = Rheon.create(null)
 
     const unlistenAbortion = Agora.listen(abortion, abort => {
+      Rheon.write(task.restorationRef, false)
+      Rheon.write(abortionRef, abort)
       Rheon.read(controllerRef).abort(abort)
     })
+
+    const unlistenRestoration = Agora.listen(restoration, () => {
+      Rheon.write(task.restorationRef, true)
+      Rheon.write(controllerRef, new AbortController())
+    })
+
+    const unlisten = () => {
+      unlistenAbortion()
+      unlistenRestoration()
+    }
 
     const task = Idion.create({
       id: identifier,
@@ -82,7 +94,10 @@ export namespace Task {
         runner: input.runner,
         controllerRef,
         abortion,
-        unlistenAbortion,
+        abortionRef,
+        restoration,
+        restorationRef,
+        unlisten,
       },
     }) as Task<I, O>
 
@@ -110,17 +125,15 @@ export namespace Task {
   ): Return<L, R> {
     const input = inputs.at(0) as I
 
-    Rheon.write(task.controllerRef, new AbortController())
-
     try {
       if (Rheon.read(task.controllerRef).signal.aborted) {
-        return Zygon.right(Rheon.read(task.controllerRef).signal.reason as R)
+        return Zygon.right(Rheon.read(task.abortionRef) as R)
       }
 
       const result = await Promise.resolve(task.runner(input as I))
 
       if (Rheon.read(task.controllerRef).signal.aborted) {
-        return Zygon.right(Rheon.read(task.controllerRef).signal.reason as R)
+        return Zygon.right(Rheon.read(task.abortionRef) as R)
       }
 
       if (Zygon.isLeft(result)) {
@@ -152,17 +165,35 @@ export namespace Task {
   }
 
   export function link(first: Task.Any, second: Task.Any): () => void {
-    const firstUnlisten = Agora.listen(first.abortion, abort => {
+    const firstAbortionUnlisten = Agora.listen(first.abortion, abort => {
+      if (Task.isAborted(second)) return
+
       Task.abort(second, abort.message)
     })
 
-    const secondUnlisten = Agora.listen(second.abortion, abort => {
+    const secondAbortionUnlisten = Agora.listen(second.abortion, abort => {
+      if (Task.isAborted(first)) return
+
       Task.abort(first, abort.message)
     })
 
+    const firstRestorationUnlisten = Agora.listen(first.restoration, () => {
+      if (Task.isRestorate(second)) return
+
+      Task.restore(second)
+    })
+
+    const secondRestorationUnlisten = Agora.listen(second.restoration, () => {
+      if (Task.isRestorate(first)) return
+
+      Task.restore(first)
+    })
+
     return () => {
-      firstUnlisten()
-      secondUnlisten()
+      firstAbortionUnlisten()
+      secondAbortionUnlisten()
+      firstRestorationUnlisten()
+      secondRestorationUnlisten()
     }
   }
 
@@ -172,5 +203,13 @@ export namespace Task {
 
   export function abort(task: Task.Any, reason?: string): void {
     Agora.publish(task.abortion, new Aborted(reason))
+  }
+
+  export function restore(task: Task.Any): void {
+    Agora.publish(task.restoration)
+  }
+
+  export function isRestorate(task: Task.Any): boolean {
+    return Rheon.read(task.restorationRef)
   }
 }
