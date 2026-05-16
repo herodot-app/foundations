@@ -26,4 +26,3 @@ describe('PraxisFailure', () => {
     expect(failure.name).toBe('@herodot-app/praxis/cerebrum/lift-left-failure')
   })
 })
-

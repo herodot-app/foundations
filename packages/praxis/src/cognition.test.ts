@@ -130,4 +130,49 @@ describe('Cognition', () => {
       expect(Cognition.get(cognition, 'counter')).toBe(0)
     })
   })
+
+  describe('Cognition.merge', () => {
+    it('merges two cognitions', () => {
+      const first = Cognition.create({ a: 1 })
+      const second = Cognition.create({ b: 2 })
+
+      const merged = Cognition.merge(first, second)
+
+      expect(Cognition.get(merged, 'a')).toBe(1)
+      expect(Cognition.get(merged, 'b')).toBe(2)
+    })
+
+    it('second cognition overwrites first on conflict', () => {
+      const first = Cognition.create({ key: 'first' })
+      const second = Cognition.create({ key: 'second' })
+
+      const merged = Cognition.merge(first, second)
+
+      expect(Cognition.get(merged, 'key')).toBe('second')
+    })
+
+    it('merges multiple services', () => {
+      const first = Cognition.create({ http: 'service1', db: 'db1' })
+      const second = Cognition.create({ cache: 'redis', logger: 'logger' })
+
+      const merged = Cognition.merge(first, second)
+
+      expect(Cognition.get(merged, 'http')).toBe('service1')
+      expect(Cognition.get(merged, 'db')).toBe('db1')
+      expect(Cognition.get(merged, 'cache')).toBe('redis')
+      expect(Cognition.get(merged, 'logger')).toBe('logger')
+    })
+
+    it('preserves original cognitions unchanged', () => {
+      const first = Cognition.create({ original: 'value' })
+      const second = Cognition.create({ other: 'data' })
+
+      Cognition.merge(first, second)
+
+      // @ts-expect-error
+      expect(Cognition.get(first, 'other')).toBeUndefined()
+      // @ts-expect-error
+      expect(Cognition.get(second, 'original')).toBeUndefined()
+    })
+  })
 })
