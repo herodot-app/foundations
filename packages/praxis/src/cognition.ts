@@ -14,7 +14,7 @@ export namespace Cognition {
 
   export type Identifier = typeof identifier
 
-  export type Key = string
+  export type Key = string | symbol
 
   // biome-ignore lint: we want here any cognition value
   export type Any = Cognition<Record<Key, any>>

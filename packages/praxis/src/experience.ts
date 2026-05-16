@@ -1,20 +1,18 @@
-import { Agora } from '@herodot-app/agora'
 import { Idion } from '@herodot-app/idion'
-import { Ptoma } from '@herodot-app/ptoma'
 import { Cognition } from './cognition'
+import type { Zygon } from '@herodot-app/zygon'
+import { PraxisFailure } from './praxis-failure'
+import { Ptoma } from '@herodot-app/ptoma'
 
 export type Experience<
-  T = unknown,
+  L = unknown,
+  R = PraxisFailure,
   C extends Cognition.Any = Cognition.Never,
 > = Idion<
   Experience.Identifier,
   {
-    readonly value: T
-
-    readonly abortions: Agora<Experience.Abortion>
-
+    readonly value: Zygon<L, R>
     readonly controller: AbortController
-
     readonly cognition: C
   }
 >
@@ -24,52 +22,36 @@ export namespace Experience {
 
   export type Identifier = typeof identifier
 
-  export class Abortion extends Ptoma.create(
-    '@herodot-app/praxis/experience/abortion',
-    'The current experience has been aborted',
-  ) {}
-
   // biome-ignore lint: could be any cognition here
   export type InferValue<T> = T extends Experience<infer I, any> ? I : T
 
-  export type Input<T = unknown, C extends Cognition.Any = Cognition.Never> = {
-    value: T
-    abortions?: Agora<Abortion>
+  export type Input<
+    L = unknown,
+    R = PraxisFailure,
+    C extends Cognition.Any = Cognition.Never,
+  > = {
+    value: Zygon<L, R>
     cognition?: C
+    controller?: AbortController
   }
 
   export function create<
-    T = unknown,
+    L = unknown,
+    R = PraxisFailure,
     C extends Cognition.Any = Cognition.Never,
   >({
     value,
-    abortions = Agora.create<Abortion>(),
     cognition = Cognition.create(Object.create({})) as C,
-  }: Input<T, C>): Experience<T, C> {
-    const controller = new AbortController()
-
-    const experience = Idion.create({
+    controller = new AbortController(),
+  }: Input<L, R, C>): Experience<L, R, C> {
+    return Idion.create({
       id: identifier,
       value: {
         value,
-        abortions,
         controller,
         cognition,
       },
     })
-
-    controller.signal.addEventListener(
-      'abort',
-      () => {
-        Agora.publish(
-          experience.abortions,
-          new Abortion(controller.signal.reason),
-        )
-      },
-      { once: true },
-    )
-
-    return experience
   }
 
   export function abort<T = unknown>(
@@ -81,13 +63,13 @@ export namespace Experience {
     experience.controller.abort(reason)
   }
 
-  export function abortion(reason?: string): Abortion {
-    return new Abortion(reason)
-  }
-
   export function isAborted<T, C extends Cognition.Any = Cognition.Never>(
     experience: Experience<T, C>,
   ): boolean {
-    return experience.controller.signal.aborted
+    return (
+      experience.controller.signal.aborted
+      || Ptoma.match(experience.value.left, PraxisFailure.Aborted)
+      || Ptoma.match(experience.value.right, PraxisFailure.Aborted)
+    )
   }
 }
