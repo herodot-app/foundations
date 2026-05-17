@@ -4,6 +4,7 @@ tasks:
     deps:
       - 'idion:build'
       - 'zygon:build'
+      - 'sema:build'
       - 'rheon:build'
       - 'ptoma:build'
       - 'agora:build'
@@ -12,6 +13,7 @@ tasks:
     deps:
       - 'idion:build'
       - 'zygon:build'
+      - 'sema:build'
       - 'rheon:build'
       - 'ptoma:build'
       - 'agora:build'
@@ -20,6 +22,7 @@ tasks:
     deps:
       - 'idion:build'
       - 'zygon:build'
+      - 'sema:build'
       - 'rheon:build'
       - 'ptoma:build'
       - 'agora:build'

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'bun:test'
 import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
+import { Rheon } from '@herodot-app/rheon'
 import { Zygon } from '@herodot-app/zygon'
 import { Task } from './task'
-import { Rheon } from '@herodot-app/rheon'
 
 describe('Task', () => {
   describe('Task.create', () => {

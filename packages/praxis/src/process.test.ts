@@ -1,198 +1,285 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: any is fine here
+// biome-ignore-all lint/style/noNonNullAssertion: we want non null assertion in this test
 import { describe, expect, it } from 'bun:test'
 import { Idion } from '@herodot-app/idion'
+import { Sema } from '@herodot-app/sema'
 import { Zygon } from '@herodot-app/zygon'
-import { Agora } from '@herodot-app/agora'
-import { Process } from './process'
-import { Cerebrum } from './cerebrum'
+import { Action } from './action'
+import type { Cognition } from './cognition'
 import { Experience } from './experience'
+import { Process } from './process'
+import { ProcessId } from './process-id'
 
 describe('Process', () => {
   describe('Process.create', () => {
-    it('creates a process with a thought function', () => {
-      const thought = (input: number) => input * 2
-      const process = Process.create({ thought, input: 21 })
+    it('builds a pipeline of actions', async () => {
+      const multiplyByTwo = Action.create(
+        async (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left! * 2
+        },
+      )
+      const addTen = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left! + 10
+        },
+      )
+      const displayNumber = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return `Number is ${exp.value.left!}`
+        },
+      )
 
-      expect(Idion.is(process, Process.identifier)).toBe(true)
+      const pipeline = [multiplyByTwo, addTen, displayNumber] as const
+
+      const processor = Process.create(
+        pipeline,
+        Experience.create({
+          value: Zygon.left(2),
+        }),
+      )
+
+      const value = await processor
+
+      expect(Zygon.isLeft(value)).toBe(true)
+
+      expect(value.left).toEqual('Number is 14')
     })
 
-    it('creates a process and returns a thenable', async () => {
-      const thought = (input: number) => input * 2
-      const process = Process.create({ thought, input: 21 })
+    it('creates a Process that is a valid Idion', () => {
+      const action = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left
+        },
+      )
 
-      const result = await process
+      const pipeline = [action] as const
+
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(42) }),
+      )
+
+      expect(Idion.is(processor, Process.identifier)).toBe(true)
+    })
+
+    it('creates a Process with a pid', () => {
+      const action = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left
+        },
+      )
+
+      const pipeline = [action] as const
+
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(42) }),
+      )
+
+      expect(Idion.is(processor.pid, ProcessId.identifier)).toBe(true)
+    })
+
+    it('creates a Process with initial experience', () => {
+      const action = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left
+        },
+      )
+
+      const initialExperience = Experience.create({ value: Zygon.left(42) })
+      const pipeline = [action] as const
+
+      const processor = Process.create(pipeline, initialExperience)
+
+      expect(processor.experience).toBe(initialExperience)
+    })
+
+    it('creates a Process with Idle status initially', () => {
+      const action = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left
+        },
+      )
+
+      const pipeline = [action] as const
+
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(42) }),
+      )
+
+      const status = processor.status
+      expect(status).toBeDefined()
+      expect(Sema.read(status)).toBe(Process.Status.Idle)
+    })
+
+    it('creates a Process that is thenable', async () => {
+      const action = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left! * 2
+        },
+      )
+
+      const pipeline = [action] as const
+
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(21) }),
+      )
+
+      expect(typeof processor.then).toBe('function')
+
+      const result = await processor
 
       expect(Zygon.isLeft(result)).toBe(true)
-
-      if (Zygon.isLeft(result)) {
-        expect(result.left).toBe(42)
-      }
+      expect(result.left).toBe(42)
     })
 
-    it('exposes experience in value', () => {
-      const thought = (input: number) => input * 2
-      const process = Process.create({ thought, input: 21 })
+    it('transitions status from Idle to Running to Finished', async () => {
+      const action = Action.create(
+        async (exp: Experience<number, any, Cognition.Any>) => {
+          await new Promise(resolve => setTimeout(resolve, 150))
 
-      expect(process.experience).toBeDefined()
-      expect(process.experience.value).toBe(21)
-    })
+          return exp.value.left! * 2
+        },
+      )
 
-    it('exposes cerebrum in value', () => {
-      const thought = (input: number) => input * 2
-      const cerebrum = Cerebrum.create(thought)
-      const process = Process.create({ thought, input: 21 })
+      const pipeline = [action] as const
 
-      expect(process.cerebrum).toBeDefined()
-      expect(process.cerebrum.thought).toBe(cerebrum.thought)
-    })
-  })
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(10) }),
+      )
 
-  describe('Process.create - with options', () => {
-    it('accepts custom input', () => {
-      const thought = (input: string) => input.length
-      const process = Process.create({ thought, input: 'hello' })
+      expect(Sema.read(processor.status)).toBe(Process.Status.Idle)
 
-      expect(process.experience.value).toBe('hello')
-    })
+      const newPromise = processor.then(value => {
+        expect(Sema.read(processor.status)).toBe(Process.Status.Finished)
 
-    it('accepts custom abortions agora', () => {
-      const customAbortions = Agora.create<Experience.Abortion>()
-      const thought = (input: number) => input * 2
-
-      const process = Process.create({
-        thought,
-        input: 1,
-        abortions: customAbortions,
+        return value
       })
 
-      expect(process.experience.abortions).toBe(customAbortions)
+      expect(Sema.read(processor.status)).toBe(Process.Status.Running)
+
+      await newPromise
     })
 
-    it('accepts optional input (undefined)', () => {
-      const thought = () => 'default'
-      const process = Process.create({ thought })
+    it('handles errors when action throws', async () => {
+      const failingAction = Action.create((): unknown => {
+        throw new Error('Action failed')
+      })
 
-      expect(process.experience.value).toBeUndefined()
-    })
+      const pipeline = [failingAction] as const
 
-    it('works without input for void thoughts', async () => {
-      const thought = () => 'result'
-      const process = Process.create({ thought })
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(42) }),
+      )
 
-      const result = await process
-
-      expect(Zygon.isLeft(result)).toBe(true)
-
-      if (Zygon.isLeft(result)) {
-        expect(result.left).toBe('result')
-      }
-    })
-  })
-
-  describe('Process execution', () => {
-    it('returns left when thought succeeds', async () => {
-      const thought = (input: number) => input + 10
-      const process = Process.create({ thought, input: 5 })
-
-      const result = await process
-
-      expect(Zygon.isLeft(result)).toBe(true)
-
-      if (Zygon.isLeft(result)) {
-        expect(result.left).toBe(15)
-      }
-    })
-
-    it('returns right when thought throws', async () => {
-      const thought = (_input: number) => {
-        throw new Error('process error')
-      }
-
-      const process = Process.create({ thought, input: 42 })
-
-      const result = await process
+      const result = await processor
 
       expect(Zygon.isRight(result)).toBe(true)
     })
 
-    it('returns right when aborted', async () => {
-      const customAbortions = Agora.create<Experience.Abortion>()
-      const thought = (input: number) => input * 2
-      const process = Process.create({
-        thought,
-        input: 1,
-        abortions: customAbortions,
+    it('handles Zygon.right results correctly', async () => {
+      const errorAction = Action.create(() => {
+        return Zygon.right(new Error('Something went wrong'))
       })
 
-      Experience.abort(process.experience, 'done!')
+      const pipeline = [errorAction] as const
 
-      const result = await process
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(42) }),
+      )
+
+      const result = await processor
 
       expect(Zygon.isRight(result)).toBe(true)
-      expect(result.right).toBeInstanceOf(Experience.Abortion)
     })
 
-    it('handles async thought functions', async () => {
-      const thought = async (input: number) => {
-        return input * 3
-      }
-      const process = Process.create({ thought, input: 7 })
+    it('works with single action pipeline', async () => {
+      const action = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left! + 100
+        },
+      )
 
-      const result = await process
+      const pipeline = [action] as const
+
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(5) }),
+      )
+
+      const result = await processor
 
       expect(Zygon.isLeft(result)).toBe(true)
-
-      if (Zygon.isLeft(result)) {
-        expect(result.left).toBe(21)
-      }
+      expect(result.left).toBe(105)
     })
 
-    it('handles Zygon return values', async () => {
-      const thought = (_input: number) => {
-        return Zygon.left('success')
-      }
+    it('works with empty pipeline', async () => {
+      const pipeline = [] as const
 
-      const process = Process.create({ thought, input: 1 })
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(42) }),
+      )
 
-      const result = await process
+      const result = await processor
 
       expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(42)
+    })
 
-      if (Zygon.isLeft(result)) {
-        expect(result.left).toBe('success')
-      }
+    it('passes experience through pipeline correctly', async () => {
+      const extractValue = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left
+        },
+      )
+      const doubleValue = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left! * 2
+        },
+      )
+      const addTen = Action.create(
+        (exp: Experience<number, any, Cognition.Any>) => {
+          return exp.value.left! + 10
+        },
+      )
+
+      const pipeline = [extractValue, doubleValue, addTen] as const
+
+      const processor = Process.create(
+        pipeline,
+        Experience.create({ value: Zygon.left(5) }),
+      )
+
+      const result = await processor
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
     })
   })
 
-  describe('Process typing', () => {
-    it('works with typed input', () => {
-      const thought = (input: string): number => input.length
-      const process = Process.create<string, number>({
-        thought,
-        input: 'test',
-      })
-
-      expect(process.experience.value).toBe('test')
+  describe('Process.Status', () => {
+    it('has Idle status', () => {
+      expect(String(Process.Status.Idle)).toBe(
+        '@herodot-app/praxis/process/status/idle',
+      )
     })
 
-    it('works with complex types', async () => {
-      interface User {
-        name: string
-        age: number
-      }
-      const thought = async (input: User) => Zygon.left(input.name)
-      const process = Process.create({
-        thought,
-        input: { name: 'John', age: 30 },
-      })
+    it('has Running status', () => {
+      expect(String(Process.Status.Running)).toBe(
+        '@herodot-app/praxis/process/status/running',
+      )
+    })
 
-      const result = await process
-
-      expect(Zygon.isLeft(result)).toBe(true)
-
-      if (Zygon.isLeft(result)) {
-        expect(result.left).toBe('John')
-      }
+    it('has Finished status', () => {
+      expect(String(Process.Status.Finished)).toBe(
+        '@herodot-app/praxis/process/status/finished',
+      )
     })
   })
 })
-

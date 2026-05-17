@@ -22,23 +22,26 @@ export namespace Experience {
 
   export type Identifier = typeof identifier
 
-  // biome-ignore lint: could be any cognition here
-  export type InferValue<T> = T extends Experience<infer I, any> ? I : T
+  export type InferValue<T> =
+    // biome-ignore lint: could be any cognition here
+    T extends Experience<any, any, any> ? T['value'] : never
 
   export type Lift<T, C extends Cognition.Any = Cognition.Never> =
     T extends Promise<infer A>
-      ? Lift<A>
+      ? Lift<A, C>
       : T extends Experience<infer L, infer R, infer C2>
         ? Experience<
             Zygon.AwaitedLiftLeft<L>,
             Zygon.AwaitedLiftRight<L> | Zygon.AwaitedLiftRight<Zygon.Right<R>>,
             Cognition.Merge<C, C2>
           >
-        : Experience<
-            Zygon.AwaitedLiftLeft<T>,
-            Zygon.AwaitedLiftRight<T> | PraxisFailure,
-            C
-          >
+        : T extends never
+          ? Experience<Zygon.AwaitedLiftLeft<unknown>, PraxisFailure, C>
+          : Experience<
+              Zygon.AwaitedLiftLeft<T>,
+              Zygon.AwaitedLiftRight<T> | PraxisFailure,
+              C
+            >
 
   export type Input<
     L = unknown,
