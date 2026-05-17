@@ -1,10 +1,10 @@
+import { Idion } from '@herodot-app/idion'
+import { Ptoma } from '@herodot-app/ptoma'
 import { Zygon } from '@herodot-app/zygon'
 import { Cerebrum } from './cerebrum'
 import type { Cognition } from './cognition'
-import { Idion } from '@herodot-app/idion'
-import { Processor } from './processor'
 import { Experience } from './experience'
-import { Ptoma } from '@herodot-app/ptoma'
+import { Processor } from './processor'
 
 export type Praxis<
   I = undefined,
