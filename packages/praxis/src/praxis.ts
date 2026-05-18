@@ -2,15 +2,15 @@ import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
 import { Zygon } from '@herodot-app/zygon'
 import { Cerebrum } from './cerebrum'
-import type { Cognition } from './cognition'
 import { Experience } from './experience'
+import type { Faculty } from './faculty'
 import { Processor } from './processor'
 
 export type Praxis<
   I = undefined,
   L = unknown,
   R = Cerebrum.Failures,
-  C extends Cognition.Any = Cognition.Never,
+  C extends Faculty.Any = Faculty.Never,
 > = Idion<
   Praxis.Identifier,
   {
@@ -60,7 +60,7 @@ export namespace Praxis {
   }
 }
 
-//export class Praxis<I = undefined, L = unknown, R = Cerebrum.Failures, C extends Cognition.Any = Cognition.Never> {
+//export class Praxis<I = undefined, L = unknown, R = Cerebrum.Failures, C extends Faculty.Any = Faculty.Never> {
 
 // static create<I = undefined, L = unknown, R = Task.Failures>(
 //   fn: Task.Runner<I, L>,
@@ -254,7 +254,7 @@ type InferPraxis<
   I = undefined,
   L = unknown,
   R = Cerebrum.Failures,
-  C extends Cognition.Any = Cognition.Never,
+  C extends Faculty.Any = Faculty.Never,
 > = Praxis<
   I,
   Experience.InferValue<Zygon.AwaitedLiftLeft<L>>,

@@ -1,19 +1,19 @@
 import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
 import type { Zygon } from '@herodot-app/zygon'
-import { Cognition } from './cognition'
+import { Faculty } from './faculty'
 import { PraxisFailure } from './praxis-failure'
 
 export type Experience<
   L = unknown,
   R = PraxisFailure,
-  C extends Cognition.Any = Cognition.Never,
+  C extends Faculty.Any = Faculty.Never,
 > = Idion<
   Experience.Identifier,
   {
     readonly value: Zygon<L, R>
     readonly controller: AbortController
-    readonly cognition: C
+    readonly faculty: C
   }
 >
 
@@ -23,17 +23,17 @@ export namespace Experience {
   export type Identifier = typeof identifier
 
   export type InferValue<T> =
-    // biome-ignore lint: could be any cognition here
+    // biome-ignore lint: could be any faculty here
     T extends Experience<any, any, any> ? T['value'] : never
 
-  export type Lift<T, C extends Cognition.Any = Cognition.Never> =
+  export type Lift<T, C extends Faculty.Any = Faculty.Never> =
     T extends Promise<infer A>
       ? Lift<A, C>
       : T extends Experience<infer L, infer R, infer C2>
         ? Experience<
             Zygon.AwaitedLiftLeft<L>,
             Zygon.AwaitedLiftRight<L> | Zygon.AwaitedLiftRight<Zygon.Right<R>>,
-            Cognition.Merge<C, C2>
+            Faculty.Merge<C, C2>
           >
         : T extends never
           ? Experience<Zygon.AwaitedLiftLeft<unknown>, PraxisFailure, C>
@@ -46,20 +46,20 @@ export namespace Experience {
   export type Input<
     L = unknown,
     R = PraxisFailure,
-    C extends Cognition.Any = Cognition.Never,
+    C extends Faculty.Any = Faculty.Never,
   > = {
     value: Zygon<L, R>
-    cognition?: C
+    faculty?: C
     controller?: AbortController
   }
 
   export function create<
     L = unknown,
     R = PraxisFailure,
-    C extends Cognition.Any = Cognition.Never,
+    C extends Faculty.Any = Faculty.Never,
   >({
     value,
-    cognition = Cognition.create(Object.create({})) as C,
+    faculty = Faculty.create(Object.create({})) as C,
     controller = new AbortController(),
   }: Input<L, R, C>): Experience<L, R, C> {
     return Idion.create({
@@ -67,7 +67,7 @@ export namespace Experience {
       value: {
         value,
         controller,
-        cognition,
+        faculty,
       },
     })
   }
@@ -84,7 +84,7 @@ export namespace Experience {
   export function isAborted<
     L = unknown,
     R = PraxisFailure,
-    C extends Cognition.Any = Cognition.Never,
+    C extends Faculty.Any = Faculty.Never,
   >(experience: Experience<L, R, C>): boolean {
     return (
       experience.controller.signal.aborted
@@ -96,7 +96,7 @@ export namespace Experience {
   export function is<
     L = unknown,
     R = PraxisFailure,
-    C extends Cognition.Any = Cognition.Never,
+    C extends Faculty.Any = Faculty.Never,
     // biome-ignore lint: any is fine here
   >(subject: any): subject is Experience<L, R, C> {
     return Idion.is(subject, identifier)

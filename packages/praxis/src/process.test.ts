@@ -5,8 +5,8 @@ import { Idion } from '@herodot-app/idion'
 import { Sema } from '@herodot-app/sema'
 import { Zygon } from '@herodot-app/zygon'
 import { Action } from './action'
-import type { Cognition } from './cognition'
 import { Experience } from './experience'
+import type { Faculty } from './faculty'
 import { Process } from './process'
 import { ProcessId } from './process-id'
 
@@ -14,17 +14,17 @@ describe('Process', () => {
   describe('Process.create', () => {
     it('builds a pipeline of actions', async () => {
       const multiplyByTwo = Action.create(
-        async (exp: Experience<number, any, Cognition.Any>) => {
+        async (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! * 2
         },
       )
       const addTen = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! + 10
         },
       )
       const displayNumber = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return `Number is ${exp.value.left!}`
         },
       )
@@ -47,7 +47,7 @@ describe('Process', () => {
 
     it('creates a Process that is a valid Idion', () => {
       const action = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
@@ -64,7 +64,7 @@ describe('Process', () => {
 
     it('creates a Process with a pid', () => {
       const action = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
@@ -81,7 +81,7 @@ describe('Process', () => {
 
     it('creates a Process with initial experience', () => {
       const action = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
@@ -96,7 +96,7 @@ describe('Process', () => {
 
     it('creates a Process with Idle status initially', () => {
       const action = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
@@ -115,7 +115,7 @@ describe('Process', () => {
 
     it('creates a Process that is thenable', async () => {
       const action = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! * 2
         },
       )
@@ -137,7 +137,7 @@ describe('Process', () => {
 
     it('transitions status from Idle to Running to Finished', async () => {
       const action = Action.create(
-        async (exp: Experience<number, any, Cognition.Any>) => {
+        async (exp: Experience<number, any, Faculty.Any>) => {
           await new Promise(resolve => setTimeout(resolve, 150))
 
           return exp.value.left! * 2
@@ -200,7 +200,7 @@ describe('Process', () => {
 
     it('works with single action pipeline', async () => {
       const action = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! + 100
         },
       )
@@ -234,17 +234,17 @@ describe('Process', () => {
 
     it('passes experience through pipeline correctly', async () => {
       const extractValue = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
       const doubleValue = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! * 2
         },
       )
       const addTen = Action.create(
-        (exp: Experience<number, any, Cognition.Any>) => {
+        (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! + 10
         },
       )

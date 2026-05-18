@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'bun:test'
 import { Zygon } from '@herodot-app/zygon'
 import { Action } from './action'
-import { Cognition } from './cognition'
 import { Experience } from './experience'
+import { Faculty } from './faculty'
 import { PraxisFailure } from './praxis-failure'
 
 describe('Action', () => {
@@ -12,7 +12,7 @@ describe('Action', () => {
 
   describe('Action.run with sync function', () => {
     it('transforms sync function to async experience-based function', async () => {
-      const syncFn = (exp: Experience<number, unknown, Cognition.Never>) =>
+      const syncFn = (exp: Experience<number, unknown, Faculty.Never>) =>
         exp.value.left! + 1
       const action = Action.create(syncFn)
       const input = createTestExperience(5)
@@ -22,34 +22,33 @@ describe('Action', () => {
       expect(result.value.left).toBe(6)
     })
 
-    it('preserves cognition through action', async () => {
+    it('preserves faculty through action', async () => {
       type Services = {
         service: 'test-service'
       }
 
-      const syncFn = (exp: Experience<number, unknown, Cognition<Services>>) =>
+      const syncFn = (exp: Experience<number, unknown, Faculty<Services>>) =>
         exp.value.left! * 2
 
       const action = Action.create(syncFn)
-      const cognition = Cognition.create<Services>({ service: 'test-service' })
+      const faculty = Faculty.create<Services>({ service: 'test-service' })
 
       const input = Experience.create({
         value: Zygon.left(3),
-        cognition,
+        faculty,
       })
 
       const result = await Action.run(action, input)
 
       expect(result.value.left).toBe(6)
-      expect(Cognition.get(result.cognition, 'service')).toBe('test-service')
+      expect(Faculty.get(result.faculty, 'service')).toBe('test-service')
     })
   })
 
   describe('Action.run with async function', () => {
     it('handles async function returning plain value', async () => {
-      const asyncFn = async (
-        exp: Experience<number, unknown, Cognition.Never>,
-      ) => exp.value.left! * 3
+      const asyncFn = async (exp: Experience<number, unknown, Faculty.Never>) =>
+        exp.value.left! * 3
 
       const action = Action.create(asyncFn)
       const input = createTestExperience(4)
@@ -61,7 +60,7 @@ describe('Action', () => {
 
     it('awaits async function result', async () => {
       const asyncFn = async (
-        exp: Experience<number, unknown, Cognition.Never>,
+        exp: Experience<number, unknown, Faculty.Never>,
       ) => {
         await new Promise(resolve => setTimeout(resolve, 10))
 
@@ -79,7 +78,7 @@ describe('Action', () => {
 
   describe('Action.run with sync function returning Zygon', () => {
     it('handles sync function returning left', async () => {
-      const zygonFn = (exp: Experience<number, unknown, Cognition.Never>) =>
+      const zygonFn = (exp: Experience<number, unknown, Faculty.Never>) =>
         Zygon.left(exp.value.left! * 2)
 
       const action = Action.create(zygonFn)
@@ -104,7 +103,7 @@ describe('Action', () => {
   describe('Action.run with async function returning Zygon', () => {
     it('handles async function returning left', async () => {
       const asyncZygonFn = async (
-        exp: Experience<number, unknown, Cognition.Never>,
+        exp: Experience<number, unknown, Faculty.Never>,
       ) => Zygon.left(exp.value.left! + 1)
 
       const action = Action.create(asyncZygonFn)
@@ -131,9 +130,8 @@ describe('Action', () => {
 
   describe('Action.run with function returning Experience', () => {
     it('handles sync function returning Experience', async () => {
-      const experienceFn = (
-        exp: Experience<number, unknown, Cognition.Never>,
-      ) => Experience.create({ value: Zygon.left(exp.value.left! * 4) })
+      const experienceFn = (exp: Experience<number, unknown, Faculty.Never>) =>
+        Experience.create({ value: Zygon.left(exp.value.left! * 4) })
 
       const action = Action.create(experienceFn)
       const input = createTestExperience(5)
@@ -145,7 +143,7 @@ describe('Action', () => {
 
     it('handles async function returning Experience', async () => {
       const asyncExperienceFn = async (
-        exp: Experience<number, unknown, Cognition.Never>,
+        exp: Experience<number, unknown, Faculty.Never>,
       ) => Experience.create({ value: Zygon.left(exp.value.left! - 1) })
 
       const action = Action.create(asyncExperienceFn)

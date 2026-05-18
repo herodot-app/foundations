@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { Zygon } from '@herodot-app/zygon'
-import { Cognition } from './cognition'
 import { Experience } from './experience'
+import { Faculty } from './faculty'
 import { PraxisFailure } from './praxis-failure'
 
 describe('Experience', () => {
@@ -24,14 +24,14 @@ describe('Experience', () => {
       expect(experience.value.right).toBeInstanceOf(PraxisFailure.Unknown)
     })
 
-    it('creates experience with custom cognition', () => {
-      const cognition = Cognition.create({ service: 'test' })
+    it('creates experience with custom faculty', () => {
+      const faculty = Faculty.create({ service: 'test' })
       const experience = Experience.create({
         value: Zygon.left('data'),
-        cognition,
+        faculty,
       })
 
-      expect(Cognition.get(experience.cognition, 'service')).toBe('test')
+      expect(Faculty.get(experience.faculty, 'service')).toBe('test')
     })
 
     it('creates experience with custom abort controller', () => {
@@ -44,7 +44,7 @@ describe('Experience', () => {
       expect(experience.controller).toBe(controller)
     })
 
-    it('creates experience with default cognition', () => {
+    it('creates experience with default faculty', () => {
       const experience = Experience.create({
         value: Zygon.left('data'),
       })

@@ -5,8 +5,8 @@ import { Rheon } from '@herodot-app/rheon'
 import { Sema } from '@herodot-app/sema'
 import { Zygon } from '@herodot-app/zygon'
 import { Action } from './action'
-import type { Cognition } from './cognition'
 import type { Experience } from './experience'
+import type { Faculty } from './faculty'
 import { PraxisFailure } from './praxis-failure'
 import { ProcessId } from './process-id'
 
@@ -47,7 +47,7 @@ export namespace Process {
         : never
 
   export type InferFirstExperience<P extends Pipeline> = P extends readonly []
-    ? Experience<unknown, PraxisFailure, Cognition.Any>
+    ? Experience<unknown, PraxisFailure, Faculty.Any>
     : P extends readonly [infer A extends Action.Any, ...infer _]
       ? A extends Action<infer L, infer R, any, infer C>
         ? Experience<L, R, C>

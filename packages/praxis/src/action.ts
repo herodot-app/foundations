@@ -1,15 +1,15 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Action is using any
 import { Idion } from '@herodot-app/idion'
 import { Zygon } from '@herodot-app/zygon'
-import type { Cognition } from './cognition'
 import { Experience } from './experience'
+import type { Faculty } from './faculty'
 import { PraxisFailure } from './praxis-failure'
 
 export type Action<
   L = unknown,
   R = PraxisFailure,
   O = unknown,
-  C extends Cognition.Any = Cognition.Never,
+  C extends Faculty.Any = Faculty.Never,
 > = Idion<
   Action.Identifier,
   {
@@ -28,14 +28,14 @@ export namespace Action {
     L = unknown,
     R = PraxisFailure,
     O = unknown,
-    C extends Cognition.Any = Cognition.Never,
+    C extends Faculty.Any = Faculty.Never,
   > = (experience: Experience<L, R, C>) => O
 
   export function create<
     L = unknown,
     R = PraxisFailure,
     O = unknown,
-    C extends Cognition.Any = Cognition.Never,
+    C extends Faculty.Any = Faculty.Never,
   >(runner: Fn<L, R, O, C>): Action<L, R, O, C> {
     return Idion.create({
       id: identifier,
@@ -47,7 +47,7 @@ export namespace Action {
     L = unknown,
     R = PraxisFailure,
     O = unknown,
-    C extends Cognition.Any = Cognition.Never,
+    C extends Faculty.Any = Faculty.Never,
   >(
     action: Action<L, R, O, C>,
     experience: Experience<L, R, C>,
@@ -75,14 +75,14 @@ export namespace Action {
           return Experience.create({
             value: Zygon.right(value),
             controller: experience.controller,
-            cognition: experience.cognition,
+            faculty: experience.faculty,
           }) as any
         }
 
         return Experience.create({
           value: Zygon.left(value),
           controller: experience.controller,
-          cognition: experience.cognition,
+          faculty: experience.faculty,
         }) as any
       }
 
@@ -96,21 +96,21 @@ export namespace Action {
           return Experience.create({
             value: Zygon.right(value),
             controller: experience.controller,
-            cognition: experience.cognition,
+            faculty: experience.faculty,
           }) as any
         }
 
         return Experience.create({
           value: Zygon.left(value),
           controller: experience.controller,
-          cognition: experience.cognition,
+          faculty: experience.faculty,
         }) as any
       }
 
       return Experience.create({
         value: Zygon.left(result),
         controller: experience.controller,
-        cognition: experience.cognition,
+        faculty: experience.faculty,
       }) as any
     } catch (err: unknown) {
       return Experience.create({
@@ -118,7 +118,7 @@ export namespace Action {
           new PraxisFailure.Unknown(undefined, undefined, { cause: err }),
         ),
         controller: experience.controller,
-        cognition: experience.cognition,
+        faculty: experience.faculty,
       }) as any
     }
   }
