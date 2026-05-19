@@ -34,16 +34,18 @@ export namespace Synapse {
 
   export type Pipeline = readonly Pragma.Any[]
 
+  export type Any = Synapse<any>
+
   export type InferLastZygon<P extends Pipeline> = P extends readonly []
     ? Zygon<unknown, PraxisFailure>
     : P extends readonly [infer A extends Pragma.Any]
       ? A extends Pragma<any, any, infer O, any>
         ? Experience.InferValue<Experience.Lift<O, any>>
-        : never
+        : Zygon<unknown, PraxisFailure>
       : P extends readonly [...infer _, infer A extends Pragma.Any]
         ? A extends Pragma<any, any, infer O, any>
           ? Experience.InferValue<Experience.Lift<O, any>>
-          : never
+          : Zygon<unknown, PraxisFailure>
         : never
 
   export type InferFirstExperience<P extends Pipeline> = P extends readonly []
