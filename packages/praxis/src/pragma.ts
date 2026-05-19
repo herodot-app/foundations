@@ -1,28 +1,28 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: Action is using any
+// biome-ignore-all lint/suspicious/noExplicitAny: Pragma is using any
 import { Idion } from '@herodot-app/idion'
 import { Zygon } from '@herodot-app/zygon'
 import { Experience } from './experience'
 import type { Faculty } from './faculty'
 import { PraxisFailure } from './praxis-failure'
 
-export type Action<
+export type Pragma<
   L = unknown,
   R = PraxisFailure,
   O = unknown,
   C extends Faculty.Any = Faculty.Never,
 > = Idion<
-  Action.Identifier,
+  Pragma.Identifier,
   {
-    runner: Action.Fn<L, R, O, C>
+    runner: Pragma.Fn<L, R, O, C>
   }
 >
 
-export namespace Action {
-  export const identifier = Symbol.for('@herodot-app/praxis/action')
+export namespace Pragma {
+  export const identifier = Symbol.for('@herodot-app/praxis/pragma')
 
   export type Identifier = typeof identifier
 
-  export type Any = Action<any, any, any, any>
+  export type Any = Pragma<any, any, any, any>
 
   export type Fn<
     L = unknown,
@@ -36,7 +36,7 @@ export namespace Action {
     R = PraxisFailure,
     O = unknown,
     C extends Faculty.Any = Faculty.Never,
-  >(runner: Fn<L, R, O, C>): Action<L, R, O, C> {
+  >(runner: Fn<L, R, O, C>): Pragma<L, R, O, C> {
     return Idion.create({
       id: identifier,
       value: { runner },
@@ -49,7 +49,7 @@ export namespace Action {
     O = unknown,
     C extends Faculty.Any = Faculty.Never,
   >(
-    action: Action<L, R, O, C>,
+    pragma: Pragma<L, R, O, C>,
     experience: Experience<L, R, C>,
   ): Promise<Experience.Lift<O, C>> {
     try {
@@ -59,7 +59,7 @@ export namespace Action {
         return experience as any
       }
 
-      const result = await Promise.resolve(action.runner(experience))
+      const result = await Promise.resolve(pragma.runner(experience))
 
       if (Experience.is(result)) {
         return experience as any

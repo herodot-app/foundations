@@ -4,26 +4,26 @@ import { describe, expect, it } from 'bun:test'
 import { Idion } from '@herodot-app/idion'
 import { Sema } from '@herodot-app/sema'
 import { Zygon } from '@herodot-app/zygon'
-import { Action } from './action'
 import { Experience } from './experience'
 import type { Faculty } from './faculty'
+import { Pragma } from './pragma'
 import { Process } from './process'
 import { ProcessId } from './process-id'
 
 describe('Process', () => {
   describe('Process.create', () => {
-    it('builds a pipeline of actions', async () => {
-      const multiplyByTwo = Action.create(
+    it('builds a pipeline of pragmas', async () => {
+      const multiplyByTwo = Pragma.create(
         async (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! * 2
         },
       )
-      const addTen = Action.create(
+      const addTen = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! + 10
         },
       )
-      const displayNumber = Action.create(
+      const displayNumber = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return `Number is ${exp.value.left!}`
         },
@@ -46,13 +46,13 @@ describe('Process', () => {
     })
 
     it('creates a Process that is a valid Idion', () => {
-      const action = Action.create(
+      const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
 
-      const pipeline = [action] as const
+      const pipeline = [pragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -63,13 +63,13 @@ describe('Process', () => {
     })
 
     it('creates a Process with a pid', () => {
-      const action = Action.create(
+      const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
 
-      const pipeline = [action] as const
+      const pipeline = [pragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -80,14 +80,14 @@ describe('Process', () => {
     })
 
     it('creates a Process with initial experience', () => {
-      const action = Action.create(
+      const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
 
       const initialExperience = Experience.create({ value: Zygon.left(42) })
-      const pipeline = [action] as const
+      const pipeline = [pragma] as const
 
       const processor = Process.create(pipeline, initialExperience)
 
@@ -95,13 +95,13 @@ describe('Process', () => {
     })
 
     it('creates a Process with Idle status initially', () => {
-      const action = Action.create(
+      const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
 
-      const pipeline = [action] as const
+      const pipeline = [pragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -114,13 +114,13 @@ describe('Process', () => {
     })
 
     it('creates a Process that is thenable', async () => {
-      const action = Action.create(
+      const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! * 2
         },
       )
 
-      const pipeline = [action] as const
+      const pipeline = [pragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -136,7 +136,7 @@ describe('Process', () => {
     })
 
     it('transitions status from Idle to Running to Finished', async () => {
-      const action = Action.create(
+      const pragma = Pragma.create(
         async (exp: Experience<number, any, Faculty.Any>) => {
           await new Promise(resolve => setTimeout(resolve, 150))
 
@@ -144,7 +144,7 @@ describe('Process', () => {
         },
       )
 
-      const pipeline = [action] as const
+      const pipeline = [pragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -164,12 +164,12 @@ describe('Process', () => {
       await newPromise
     })
 
-    it('handles errors when action throws', async () => {
-      const failingAction = Action.create((): unknown => {
-        throw new Error('Action failed')
+    it('handles errors when pragma throws', async () => {
+      const failingPragma = Pragma.create((): unknown => {
+        throw new Error('Pragma failed')
       })
 
-      const pipeline = [failingAction] as const
+      const pipeline = [failingPragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -182,11 +182,11 @@ describe('Process', () => {
     })
 
     it('handles Zygon.right results correctly', async () => {
-      const errorAction = Action.create(() => {
+      const errorPragma = Pragma.create(() => {
         return Zygon.right(new Error('Something went wrong'))
       })
 
-      const pipeline = [errorAction] as const
+      const pipeline = [errorPragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -198,14 +198,14 @@ describe('Process', () => {
       expect(Zygon.isRight(result)).toBe(true)
     })
 
-    it('works with single action pipeline', async () => {
-      const action = Action.create(
+    it('works with single pragma pipeline', async () => {
+      const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! + 100
         },
       )
 
-      const pipeline = [action] as const
+      const pipeline = [pragma] as const
 
       const processor = Process.create(
         pipeline,
@@ -233,17 +233,17 @@ describe('Process', () => {
     })
 
     it('passes experience through pipeline correctly', async () => {
-      const extractValue = Action.create(
+      const extractValue = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
         },
       )
-      const doubleValue = Action.create(
+      const doubleValue = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! * 2
         },
       )
-      const addTen = Action.create(
+      const addTen = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! + 10
         },

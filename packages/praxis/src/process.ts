@@ -4,9 +4,9 @@ import { Idion } from '@herodot-app/idion'
 import { Rheon } from '@herodot-app/rheon'
 import { Sema } from '@herodot-app/sema'
 import { Zygon } from '@herodot-app/zygon'
-import { Action } from './action'
 import type { Experience } from './experience'
 import type { Faculty } from './faculty'
+import { Pragma } from './pragma'
 import { PraxisFailure } from './praxis-failure'
 import { ProcessId } from './process-id'
 
@@ -32,24 +32,24 @@ export namespace Process {
 
   export type Unset = typeof unset
 
-  export type Pipeline = readonly Action.Any[]
+  export type Pipeline = readonly Pragma.Any[]
 
   export type InferLastZygon<P extends Pipeline> = P extends readonly []
     ? Zygon<unknown, PraxisFailure>
-    : P extends readonly [infer A extends Action.Any]
-      ? A extends Action<any, any, infer O, any>
+    : P extends readonly [infer A extends Pragma.Any]
+      ? A extends Pragma<any, any, infer O, any>
         ? Experience.InferValue<Experience.Lift<O, any>>
         : never
-      : P extends readonly [...infer _, infer A extends Action.Any]
-        ? A extends Action<any, any, infer O, any>
+      : P extends readonly [...infer _, infer A extends Pragma.Any]
+        ? A extends Pragma<any, any, infer O, any>
           ? Experience.InferValue<Experience.Lift<O, any>>
           : never
         : never
 
   export type InferFirstExperience<P extends Pipeline> = P extends readonly []
     ? Experience<unknown, PraxisFailure, Faculty.Any>
-    : P extends readonly [infer A extends Action.Any, ...infer _]
-      ? A extends Action<infer L, infer R, any, infer C>
+    : P extends readonly [infer A extends Pragma.Any, ...infer _]
+      ? A extends Pragma<infer L, infer R, any, infer C>
         ? Experience<L, R, C>
         : never
       : never
@@ -74,8 +74,8 @@ export namespace Process {
 
         let currentExperience: any = experience
 
-        for (const action of line) {
-          currentExperience = await Action.run(action, currentExperience)
+        for (const pragma of line) {
+          currentExperience = await Pragma.run(pragma, currentExperience)
         }
 
         Rheon.write(value, currentExperience.value)
