@@ -1,13 +1,13 @@
 import { Idion } from '@herodot-app/idion'
 
-export type ProcessId = Idion<ProcessId.Identifier, { id: string }>
+export type SynapseId = Idion<SynapseId.Identifier, { id: string }>
 
-export namespace ProcessId {
-  export const identifier = Symbol.for('@herodot-app/pracis/process-id')
+export namespace SynapseId {
+  export const identifier = Symbol.for('@herodot-app/praxis/synapse-id')
 
   export type Identifier = typeof identifier
 
-  export function create(): ProcessId {
+  export function create(): SynapseId {
     const firstDigits = Array(7)
       .fill(null)
       .reduce(

@@ -1,4 +1,4 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: process is using any
+// biome-ignore-all lint/suspicious/noExplicitAny: synapse is using any
 
 import { Idion } from '@herodot-app/idion'
 import { Rheon } from '@herodot-app/rheon'
@@ -8,27 +8,27 @@ import type { Experience } from './experience'
 import type { Faculty } from './faculty'
 import { Pragma } from './pragma'
 import { PraxisFailure } from './praxis-failure'
-import { ProcessId } from './process-id'
+import { SynapseId } from './synapse-id'
 
-export type Process<P extends Process.Pipeline> = PromiseLike<
-  Process.InferLastZygon<P>
+export type Synapse<P extends Synapse.Pipeline> = PromiseLike<
+  Synapse.InferLastZygon<P>
 > &
   Idion<
-    Process.Identifier,
+    Synapse.Identifier,
     {
-      readonly pid: ProcessId
-      readonly experience: Process.InferFirstExperience<P>
-      readonly status: Sema<Process.Status>
-      readonly value: Rheon<Process.InferLastZygon<P> | Process.Unset>
+      readonly pid: SynapseId
+      readonly experience: Synapse.InferFirstExperience<P>
+      readonly status: Sema<Synapse.Status>
+      readonly value: Rheon<Synapse.InferLastZygon<P> | Synapse.Unset>
     }
   >
 
-export namespace Process {
-  export const identifier = Symbol.for('@herodot-app/praxis/process')
+export namespace Synapse {
+  export const identifier = Symbol.for('@herodot-app/praxis/synapse')
 
   export type Identifier = typeof identifier
 
-  export const unset = Symbol.for('@herodot-app/praxis/process/unset')
+  export const unset = Symbol.for('@herodot-app/praxis/synapse/unset')
 
   export type Unset = typeof unset
 
@@ -55,16 +55,16 @@ export namespace Process {
       : never
 
   export enum Status {
-    Idle = '@herodot-app/praxis/process/status/idle',
-    Running = '@herodot-app/praxis/process/status/running',
-    Finished = '@herodot-app/praxis/process/status/finished',
+    Idle = '@herodot-app/praxis/synapse/status/idle',
+    Running = '@herodot-app/praxis/synapse/status/running',
+    Finished = '@herodot-app/praxis/synapse/status/finished',
   }
 
   export function create<P extends Pipeline>(
     line: P,
     experience: InferFirstExperience<P>,
-  ): Process<P> {
-    const pid = ProcessId.create()
+  ): Synapse<P> {
+    const pid = SynapseId.create()
     const status = Sema.create(Status.Idle)
     const value = Rheon.create<InferLastZygon<P> | Unset>(unset)
 
@@ -103,6 +103,6 @@ export namespace Process {
         value,
         then,
       },
-    }) as Process<P>
+    }) as Synapse<P>
   }
 }

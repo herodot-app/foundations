@@ -7,11 +7,11 @@ import { Zygon } from '@herodot-app/zygon'
 import { Experience } from './experience'
 import type { Faculty } from './faculty'
 import { Pragma } from './pragma'
-import { Process } from './process'
-import { ProcessId } from './process-id'
+import { Synapse } from './synapse'
+import { SynapseId } from './synapse-id'
 
-describe('Process', () => {
-  describe('Process.create', () => {
+describe('Synapse', () => {
+  describe('Synapse.create', () => {
     it('builds a pipeline of pragmas', async () => {
       const multiplyByTwo = Pragma.create(
         async (exp: Experience<number, any, Faculty.Any>) => {
@@ -31,21 +31,21 @@ describe('Process', () => {
 
       const pipeline = [multiplyByTwo, addTen, displayNumber] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({
           value: Zygon.left(2),
         }),
       )
 
-      const value = await processor
+      const value = await synaps
 
       expect(Zygon.isLeft(value)).toBe(true)
 
       expect(value.left).toEqual('Number is 14')
     })
 
-    it('creates a Process that is a valid Idion', () => {
+    it('creates a Synapse that is a valid Idion', () => {
       const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
@@ -54,15 +54,15 @@ describe('Process', () => {
 
       const pipeline = [pragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(42) }),
       )
 
-      expect(Idion.is(processor, Process.identifier)).toBe(true)
+      expect(Idion.is(synaps, Synapse.identifier)).toBe(true)
     })
 
-    it('creates a Process with a pid', () => {
+    it('creates a Synapse with a pid', () => {
       const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
@@ -71,15 +71,15 @@ describe('Process', () => {
 
       const pipeline = [pragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(42) }),
       )
 
-      expect(Idion.is(processor.pid, ProcessId.identifier)).toBe(true)
+      expect(Idion.is(synaps.pid, SynapseId.identifier)).toBe(true)
     })
 
-    it('creates a Process with initial experience', () => {
+    it('creates a Synapse with initial experience', () => {
       const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
@@ -89,12 +89,12 @@ describe('Process', () => {
       const initialExperience = Experience.create({ value: Zygon.left(42) })
       const pipeline = [pragma] as const
 
-      const processor = Process.create(pipeline, initialExperience)
+      const synaps = Synapse.create(pipeline, initialExperience)
 
-      expect(processor.experience).toBe(initialExperience)
+      expect(synaps.experience).toBe(initialExperience)
     })
 
-    it('creates a Process with Idle status initially', () => {
+    it('creates a Synapse with Idle status initially', () => {
       const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left
@@ -103,17 +103,17 @@ describe('Process', () => {
 
       const pipeline = [pragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(42) }),
       )
 
-      const status = processor.status
+      const status = synaps.status
       expect(status).toBeDefined()
-      expect(Sema.read(status)).toBe(Process.Status.Idle)
+      expect(Sema.read(status)).toBe(Synapse.Status.Idle)
     })
 
-    it('creates a Process that is thenable', async () => {
+    it('creates a Synapse that is thenable', async () => {
       const pragma = Pragma.create(
         (exp: Experience<number, any, Faculty.Any>) => {
           return exp.value.left! * 2
@@ -122,14 +122,14 @@ describe('Process', () => {
 
       const pipeline = [pragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(21) }),
       )
 
-      expect(typeof processor.then).toBe('function')
+      expect(typeof synaps.then).toBe('function')
 
-      const result = await processor
+      const result = await synaps
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(42)
@@ -146,20 +146,20 @@ describe('Process', () => {
 
       const pipeline = [pragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(10) }),
       )
 
-      expect(Sema.read(processor.status)).toBe(Process.Status.Idle)
+      expect(Sema.read(synaps.status)).toBe(Synapse.Status.Idle)
 
-      const newPromise = processor.then(value => {
-        expect(Sema.read(processor.status)).toBe(Process.Status.Finished)
+      const newPromise = synaps.then(value => {
+        expect(Sema.read(synaps.status)).toBe(Synapse.Status.Finished)
 
         return value
       })
 
-      expect(Sema.read(processor.status)).toBe(Process.Status.Running)
+      expect(Sema.read(synaps.status)).toBe(Synapse.Status.Running)
 
       await newPromise
     })
@@ -171,12 +171,12 @@ describe('Process', () => {
 
       const pipeline = [failingPragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(42) }),
       )
 
-      const result = await processor
+      const result = await synaps
 
       expect(Zygon.isRight(result)).toBe(true)
     })
@@ -188,12 +188,12 @@ describe('Process', () => {
 
       const pipeline = [errorPragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(42) }),
       )
 
-      const result = await processor
+      const result = await synaps
 
       expect(Zygon.isRight(result)).toBe(true)
     })
@@ -207,12 +207,12 @@ describe('Process', () => {
 
       const pipeline = [pragma] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(5) }),
       )
 
-      const result = await processor
+      const result = await synaps
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(105)
@@ -221,12 +221,12 @@ describe('Process', () => {
     it('works with empty pipeline', async () => {
       const pipeline = [] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(42) }),
       )
 
-      const result = await processor
+      const result = await synaps
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(42)
@@ -251,34 +251,34 @@ describe('Process', () => {
 
       const pipeline = [extractValue, doubleValue, addTen] as const
 
-      const processor = Process.create(
+      const synaps = Synapse.create(
         pipeline,
         Experience.create({ value: Zygon.left(5) }),
       )
 
-      const result = await processor
+      const result = await synaps
 
       expect(Zygon.isLeft(result)).toBe(true)
       expect(result.left).toBe(20)
     })
   })
 
-  describe('Process.Status', () => {
+  describe('Synapse.Status', () => {
     it('has Idle status', () => {
-      expect(String(Process.Status.Idle)).toBe(
-        '@herodot-app/praxis/process/status/idle',
+      expect(String(Synapse.Status.Idle)).toBe(
+        '@herodot-app/praxis/synapse/status/idle',
       )
     })
 
     it('has Running status', () => {
-      expect(String(Process.Status.Running)).toBe(
-        '@herodot-app/praxis/process/status/running',
+      expect(String(Synapse.Status.Running)).toBe(
+        '@herodot-app/praxis/synapse/status/running',
       )
     })
 
     it('has Finished status', () => {
-      expect(String(Process.Status.Finished)).toBe(
-        '@herodot-app/praxis/process/status/finished',
+      expect(String(Synapse.Status.Finished)).toBe(
+        '@herodot-app/praxis/synapse/status/finished',
       )
     })
   })
