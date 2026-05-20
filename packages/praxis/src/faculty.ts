@@ -31,6 +31,12 @@ export namespace Faculty {
     }
   >
 
+  export type LooseMerge<A, B> = A extends Faculty.Any
+    ? B extends Faculty.Any
+      ? Merge<A, B>
+      : A
+    : Never
+
   export function merge<A extends Faculty.Any, B extends Faculty.Any>(
     first: A,
     second: B,

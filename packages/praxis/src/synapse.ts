@@ -48,6 +48,27 @@ export namespace Synapse {
           : Zygon<unknown, PraxisFailure>
         : never
 
+  export type InferLastZygonLeft<P extends Pipeline> = Zygon.InferLeft<
+    InferLastZygon<P>
+  >
+
+  export type InferLastZygonRight<P extends Pipeline, R = unknown> =
+    | Zygon.InferRight<InferLastZygon<P>>
+    | Zygon.AwaitedLiftRight<R>
+    | PraxisFailure
+
+  export type InferLastExperience<P extends Pipeline> = P extends readonly []
+    ? never
+    : P extends readonly [infer A extends Pragma.Any]
+      ? A extends Pragma<any, any, infer O, infer C>
+        ? Experience.Lift<O, C>
+        : never
+      : P extends readonly [...infer _, infer A extends Pragma.Any]
+        ? A extends Pragma<any, any, infer O, infer C>
+          ? Experience.Lift<O, C>
+          : never
+        : never
+
   export type InferFirstExperience<P extends Pipeline> = P extends readonly []
     ? Experience<unknown, PraxisFailure, Faculty.Any>
     : P extends readonly [infer A extends Pragma.Any, ...infer _]

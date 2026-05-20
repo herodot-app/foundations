@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: Experience is using any in order to enhanced readability
 import { Idion } from '@herodot-app/idion'
 import { Ptoma } from '@herodot-app/ptoma'
 import type { Zygon } from '@herodot-app/zygon'
@@ -23,8 +24,10 @@ export namespace Experience {
   export type Identifier = typeof identifier
 
   export type InferValue<T> =
-    // biome-ignore lint: could be any faculty here
     T extends Experience<any, any, any> ? T['value'] : never
+
+  export type InferFaculty<T> =
+    T extends Experience<any, any, infer F> ? F : never
 
   export type Lift<T, C extends Faculty.Any = Faculty.Never> =
     T extends Promise<infer A>

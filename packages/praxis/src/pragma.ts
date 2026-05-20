@@ -24,6 +24,8 @@ export namespace Pragma {
 
   export type Any = Pragma<any, any, any, any>
 
+  export type Void = Pragma<undefined, PraxisFailure, undefined, Faculty.Any>
+
   export type Fn<
     L = unknown,
     R = PraxisFailure,
