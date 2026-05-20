@@ -100,7 +100,6 @@ export namespace Experience {
     L = unknown,
     R = PraxisFailure,
     C extends Faculty.Any = Faculty.Never,
-    // biome-ignore lint: any is fine here
   >(subject: any): subject is Experience<L, R, C> {
     return Idion.is(subject, identifier)
   }

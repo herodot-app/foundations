@@ -318,7 +318,7 @@ describe('Praxis', () => {
         ] as const,
       })
 
-      const newPraxis = praxis.do(exp => exp.value.left! + '!')
+      const newPraxis = praxis.do(exp => `${exp.value.left!}!`)
 
       const result = await newPraxis.run('hello')
 
