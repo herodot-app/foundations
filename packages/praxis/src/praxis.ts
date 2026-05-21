@@ -2,6 +2,7 @@
 import { Idion } from '@herodot-app/idion'
 import { Cerebrum } from './cerebrum'
 import type { Faculty } from './faculty'
+import { DoLeftOperator } from './operators/do-left-operator'
 import { DoOperator } from './operators/do-operator'
 import { RunOperator } from './operators/run-operator'
 import { Pragma } from './pragma'
@@ -19,6 +20,7 @@ export type Praxis<
 
     run: RunOperator<P, F>
     do: DoOperator<P, F>
+    doLeft: DoLeftOperator<P, F>
   }
 >
 
@@ -53,6 +55,7 @@ export namespace Praxis {
       value: Object.assign({}, praxisPayload, {
         run: RunOperator.create(praxisPayload as Praxis<P>),
         do: DoOperator.create(praxisPayload as Praxis<P>),
+        doLeft: DoLeftOperator.create(praxisPayload as Praxis<P>),
       }),
     }) as Praxis<P, F>
   }

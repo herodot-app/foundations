@@ -1,6 +1,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Praxis is using any in order to enhanced readability
 // biome-ignore-all lint/style/noNonNullAssertion: it's okay here
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, jest } from 'bun:test'
 import { Idion } from '@herodot-app/idion'
 import { Zygon } from '@herodot-app/zygon'
 import { Cerebrum } from './cerebrum'
@@ -345,9 +345,174 @@ describe('Praxis', () => {
     })
   })
 
+  describe('Praxis.doLeft', () => {
+    it('adds a new pragma that only executes on Left value', async () => {
+      const praxis = Praxis.create({
+        pipeline: [
+          Pragma.create(
+            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+          ),
+        ] as const,
+      })
+
+      const newPraxis = praxis.doLeft(exp => exp + 10)
+
+      const result = await newPraxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+    })
+
+    it('skips function execution when value is Right', async () => {
+      const praxis = Praxis.create({
+        pipeline: [
+          Pragma.create((): unknown => {
+            return Zygon.right(new Error('some error'))
+          }),
+        ] as const,
+      })
+
+      const newPraxis = praxis.doLeft((_exp: unknown): unknown => {
+        throw new Error('should not be called')
+      })
+
+      const result = await newPraxis.run(5)
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right?.message).toBe('some error')
+    })
+
+    it('chains multiple doLeft calls', async () => {
+      const praxis = Praxis.create({
+        pipeline: [
+          Pragma.create(
+            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+          ),
+        ] as const,
+      })
+
+      const newPraxis = praxis.doLeft(exp => exp + 10).doLeft(exp => exp * 3)
+
+      const result = await newPraxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(60)
+    })
+
+    it('preserves cerebrum across doLeft operations', async () => {
+      const cerebrum = Cerebrum.create()
+      const praxis = Praxis.create({
+        cerebrum,
+        pipeline: [
+          Pragma.create(
+            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+          ),
+        ] as const,
+      })
+
+      const newPraxis = praxis.doLeft(exp => exp + 10)
+
+      expect(newPraxis.cerebrum).toBe(cerebrum)
+    })
+
+    it('works with async functions in doLeft', async () => {
+      const praxis = Praxis.create({
+        pipeline: [
+          Pragma.create(
+            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+          ),
+        ] as const,
+      })
+
+      const newPraxis = praxis.doLeft(async exp => {
+        await new Promise(resolve => setTimeout(resolve, 50))
+
+        return exp + 10
+      })
+
+      const result = await newPraxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(20)
+    })
+
+    it('works with string transformations', async () => {
+      const praxis = Praxis.create({
+        pipeline: [
+          Pragma.create((exp: Experience<string, any, Faculty.Any>) =>
+            exp.value.left!.toUpperCase(),
+          ),
+        ] as const,
+      })
+
+      const newPraxis = praxis.doLeft(exp => `${exp}!`)
+
+      const result = await newPraxis.run('hello')
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe('HELLO!')
+    })
+
+    it('chains with do operator', async () => {
+      const praxis = Praxis.create({
+        pipeline: [
+          Pragma.create(
+            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+          ),
+        ] as const,
+      })
+
+      const newPraxis = praxis.doLeft(exp => exp + 10).doLeft(exp => exp * 3)
+
+      const result = await newPraxis.run(5)
+
+      expect(Zygon.isLeft(result)).toBe(true)
+      expect(result.left).toBe(60)
+    })
+
+    it('does not transform right value through doLeft then do', async () => {
+      const praxis = Praxis.create({
+        pipeline: [
+          Pragma.create((): unknown => {
+            return Zygon.right(new Error('some error'))
+          }),
+        ] as const,
+      })
+
+      const mockFn = jest.fn() as (v: unknown) => Zygon.Left<number>
+
+      const newPraxis = praxis.doLeft(mockFn)
+
+      const result = await newPraxis.run(5)
+
+      expect(Zygon.isRight(result)).toBe(true)
+      expect(result.right?.message).toBe('some error')
+
+      expect(mockFn).not.toHaveBeenCalled()
+    })
+  })
+
   describe('Praxis.Identifier', () => {
     it('has correct identifier symbol', () => {
       expect(Praxis.identifier.description).toBe('@herodot-app/praxis')
+    })
+  })
+
+  describe('Praxis flows', () => {
+    it('flows opeartions', async () => {
+      const praxis = Praxis.of<number>()
+        .doLeft(async x => x * 2)
+        .do(exp =>
+          exp.value.left === 20 ? Zygon.right('20 fail!') : exp.value,
+        )
+        .doLeft(async x => x.toString())
+        .doLeft(v => `Number is ${v}`)
+
+      const firstResult = await praxis.run(2)
+      const secondResult = await praxis.run(10)
+
+      expect(firstResult.left).toEqual('Number is 4')
+      expect(secondResult.right).toEqual('20 fail!' as any)
     })
   })
 })

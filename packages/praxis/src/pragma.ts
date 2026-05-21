@@ -73,16 +73,8 @@ export namespace Pragma {
           new PraxisFailure.LiftRight(),
         )
 
-        if (value instanceof Error) {
-          return Experience.create({
-            value: Zygon.right(value),
-            controller: experience.controller,
-            faculty: experience.faculty,
-          }) as any
-        }
-
         return Experience.create({
-          value: Zygon.left(value),
+          value: Zygon.right(value),
           controller: experience.controller,
           faculty: experience.faculty,
         }) as any

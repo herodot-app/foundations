@@ -43,7 +43,6 @@ export namespace Cerebrum {
     cerebrum.synapses.set(synapse.pid.id, synapse)
 
     const unlisten = Agora.listen(synapse.status, status => {
-      console.warn(status)
       Agora.publish(cerebrum, synapse)
 
       if (status === Synapse.Status.Finished) {
