@@ -8,6 +8,7 @@ import type { Experience } from './experience'
 import type { Faculty } from './faculty'
 import { Pragma } from './pragma'
 import { Praxis } from './praxis'
+import type { PraxisFailure } from './praxis-failure'
 
 describe('Praxis', () => {
   describe('Praxis.create', () => {
@@ -257,7 +258,8 @@ describe('Praxis', () => {
       const praxis = Praxis.create({
         pipeline: [
           Pragma.create(
-            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+            (exp: Experience<number, Error, Faculty.Any>) =>
+              exp.value.left! * 2,
           ),
         ] as const,
       })
@@ -278,7 +280,8 @@ describe('Praxis', () => {
         cerebrum,
         pipeline: [
           Pragma.create(
-            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+            (exp: Experience<number, PraxisFailure, Faculty.Any>) =>
+              exp.value.left! * 2,
           ),
         ] as const,
       })
@@ -292,7 +295,8 @@ describe('Praxis', () => {
       const praxis = Praxis.create({
         pipeline: [
           Pragma.create(
-            (exp: Experience<number, any, Faculty.Any>) => exp.value.left! * 2,
+            (exp: Experience<number, PraxisFailure, Faculty.Any>) =>
+              exp.value.left! * 2,
           ),
         ] as const,
       })

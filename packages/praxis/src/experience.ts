@@ -29,20 +29,32 @@ export namespace Experience {
   export type InferFaculty<T> =
     T extends Experience<any, any, infer F> ? F : never
 
-  export type Lift<T, C extends Faculty.Any = Faculty.Never> =
+  export type Lift<
+    T,
+    R = PraxisFailure,
+    C extends Faculty.Any = Faculty.Never,
+  > =
     T extends Promise<infer A>
       ? Lift<A, C>
-      : T extends Experience<infer L, infer R, infer C2>
+      : T extends Experience<infer L, infer R2, infer C2>
         ? Experience<
             Zygon.AwaitedLiftLeft<L>,
-            Zygon.AwaitedLiftRight<L> | Zygon.AwaitedLiftRight<Zygon.Right<R>>,
+            | Zygon.AwaitedLiftRight<L>
+            | Zygon.AwaitedLiftRight<Zygon.Right<R2>>
+            | Zygon.AwaitedLiftRight<Zygon.Right<R>>,
             Faculty.Merge<C, C2>
           >
         : T extends never
-          ? Experience<Zygon.AwaitedLiftLeft<unknown>, PraxisFailure, C>
+          ? Experience<
+              Zygon.AwaitedLiftLeft<unknown>,
+              PraxisFailure | Zygon.AwaitedLiftRight<Zygon.Right<R>>,
+              C
+            >
           : Experience<
               Zygon.AwaitedLiftLeft<T>,
-              Zygon.AwaitedLiftRight<T> | PraxisFailure,
+              | Zygon.AwaitedLiftRight<T>
+              | Zygon.AwaitedLiftRight<Zygon.Right<R>>
+              | PraxisFailure,
               C
             >
 

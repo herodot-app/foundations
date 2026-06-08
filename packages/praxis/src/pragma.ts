@@ -53,7 +53,7 @@ export namespace Pragma {
   >(
     pragma: Pragma<L, R, O, C>,
     experience: Experience<L, R, C>,
-  ): Promise<Experience.Lift<O, C>> {
+  ): Promise<Experience.Lift<O, R, C>> {
     try {
       if (Experience.isAborted<any, any>(experience as Experience<any, any>)) {
         Experience.abort(experience as any)

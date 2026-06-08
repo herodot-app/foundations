@@ -39,12 +39,12 @@ export namespace Synapse {
   export type InferLastZygon<P extends Pipeline> = P extends readonly []
     ? Zygon<unknown, PraxisFailure>
     : P extends readonly [infer A extends Pragma.Any]
-      ? A extends Pragma<any, any, infer O, any>
-        ? Experience.InferValue<Experience.Lift<O, any>>
+      ? A extends Pragma<any, infer R, infer O, any>
+        ? Experience.InferValue<Experience.Lift<O, R, any>>
         : Zygon<unknown, PraxisFailure>
       : P extends readonly [...infer _, infer A extends Pragma.Any]
-        ? A extends Pragma<any, any, infer O, any>
-          ? Experience.InferValue<Experience.Lift<O, any>>
+        ? A extends Pragma<any, infer R, infer O, any>
+          ? Experience.InferValue<Experience.Lift<O, R, any>>
           : Zygon<unknown, PraxisFailure>
         : never
 
@@ -60,12 +60,12 @@ export namespace Synapse {
   export type InferLastExperience<P extends Pipeline> = P extends readonly []
     ? never
     : P extends readonly [infer A extends Pragma.Any]
-      ? A extends Pragma<any, any, infer O, infer C>
-        ? Experience.Lift<O, C>
+      ? A extends Pragma<any, infer R, infer O, infer C>
+        ? Experience.Lift<O, R, C>
         : never
       : P extends readonly [...infer _, infer A extends Pragma.Any]
-        ? A extends Pragma<any, any, infer O, infer C>
-          ? Experience.Lift<O, C>
+        ? A extends Pragma<any, infer R, infer O, infer C>
+          ? Experience.Lift<O, R, C>
           : never
         : never
 
